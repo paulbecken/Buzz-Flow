@@ -849,37 +849,132 @@ def work_report_data():
 def work_report_xlsx():
     import base64
     from openpyxl import Workbook
-    from openpyxl.styles import Font, PatternFill, Alignment
+    from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
     r = build_report_data()
     wb = Workbook()
-    head_fill = PatternFill('solid', fgColor='FF5A1F')
-    head_font = Font(color='FFFFFF', bold=True)
-    def sheet(ws_, title, headers, rows):
-        ws_.title = title
-        ws_.append(headers)
-        for cell in ws_[1]:
-            cell.fill = head_fill; cell.font = head_font
-            cell.alignment = Alignment(horizontal='center')
-        for row in rows: ws_.append(row)
+    orange_fill = PatternFill('solid', fgColor='FF5A1F')
+    dark_fill = PatternFill('solid', fgColor='3C4048')
+    zebra_fill = PatternFill('solid', fgColor='FAF8F4')
+    white_bold = Font(color='FFFFFF', bold=True)
+    red_font = Font(color='D64545', bold=True)
+    green_font = Font(color='2E8B57', bold=True)
+    orange_font = Font(color='FF5A1F', bold=True)
+    mut_font = Font(color='787D87', italic=True)
+    thin = Border(bottom=Side(style='thin', color='DEDAD2'))
+
+    def style_header(ws_, row, ncols, fill, font):
+        for c in range(1, ncols+1):
+            cell = ws_.cell(row=row, column=c)
+            cell.fill = fill; cell.font = font
+            cell.alignment = Alignment(horizontal='left')
+
+    def autow(ws_):
         for col in ws_.columns:
             width = max(len(str(c.value or '')) for c in col) + 3
-            ws_.column_dimensions[col[0].column_letter].width = min(width, 44)
-    s1 = wb.active
-    sheet(s1, 'Summary',
-          ['Report', 'Month', 'Generated', 'Total tasks', 'Done', 'Open', 'Overdue', 'Delivered (month)'],
-          [[r['company'] + ' — Work Report', r['month'], r['generated'],
-            r['totals']['total_tasks'], r['totals']['done'], r['totals']['open'],
-            r['totals']['overdue'], r['totals']['delivered_month']]])
-    sheet(wb.create_sheet(), 'Employees',
-          ['Name', 'Title', 'Role', 'Delivered this month', 'Open tasks', 'Overdue', 'Work breakdown'],
-          [[e['name'], e['title'], e['role'], e['delivered'], e['open'], e['overdue'], e['services']] for e in r['employees']])
-    sheet(wb.create_sheet(), 'Client quotas',
-          ['Client', 'Service', 'Done', 'Target', '% complete'],
-          [[c['client'], c['service'], c['done'], c['target'], str(c['pct']) + '%'] for c in r['clients']])
-    sheet(wb.create_sheet(), 'All tasks',
-          ['Task', 'Client', 'Service', 'Qty', 'Assignee', 'Status', 'Priority', 'Due', 'Done on'],
-          [[t['title'], t['client'] or '', t['service'], t['qty'], t['assignee'] or '',
-            t['status'], t['priority'], t['due'] or '', t['done_on'] or ''] for t in r['tasks']])
+            ws_.column_dimensions[col[0].column_letter].width = min(width, 46)
+
+    def plural_svc(n, svc):
+        base = svc[:-1] if svc.lower().endswith('s') else svc
+        return f"{n} {base}" if n == 1 else f"{n} {base}s"
+
+    # ---- Sheet 1: Summary ----
+    s1 = wb.active; s1.title = 'Summary'
+    s1.append([r['company'] + ' — Monthly Work Report'])
+    s1['A1'].font = Font(bold=True, size=14, color='FF5A1F')
+    s1.append([r['month'] + '  ·  Generated ' + r['generated']])
+    s1['A2'].font = mut_font
+    s1.append([])
+    s1.append(['Total tasks', 'Completed', 'Still open', 'Overdue', 'Delivered this month'])
+    style_header(s1, 4, 5, dark_fill, white_bold)
+    T = r['totals']
+    s1.append([T['total_tasks'], T['done'], T['open'], T['overdue'], T['delivered_month']])
+    s1.cell(row=5, column=2).font = green_font
+    s1.cell(row=5, column=4).font = red_font if T['overdue'] else green_font
+    s1.cell(row=5, column=5).font = orange_font
+    autow(s1)
+
+    # ---- Sheet 2: Monthly Work (client wise, pending/extra) ----
+    s2 = wb.create_sheet('Monthly Work')
+    s2.append(['Client', 'Service', 'Done', 'Target', 'Progress %', 'Pending', 'Extra delivered'])
+    style_header(s2, 1, 7, orange_fill, white_bold)
+    byc = {}
+    for c in r['clients']:
+        byc.setdefault(c['client'], []).append(c)
+    ri = 2
+    for cn, rows in byc.items():
+        for qi, q in enumerate(rows):
+            pend_txt, extra_txt, pct_txt = '', '', ''
+            done_v = q['done'] if q['done'] is not None else ''
+            tgt_v = q['target'] if q['target'] else '—'
+            if q['target']:
+                pct_txt = f"{q['pct']}%"
+                if q['done'] < q['target']:
+                    pend_txt = plural_svc(q['target'] - q['done'], q['service'])
+                elif q['done'] > q['target']:
+                    extra_txt = '+' + plural_svc(q['done'] - q['target'], q['service'])
+            elif q['done'] is not None:
+                pct_txt = 'no target set'
+                extra_txt = '+' + plural_svc(q['done'], q['service'])
+            else:
+                pct_txt = 'no work recorded'
+            s2.append([cn if qi == 0 else '', q['service'], done_v, tgt_v, pct_txt, pend_txt, extra_txt])
+            if qi == 0:
+                s2.cell(row=ri, column=1).font = orange_font
+            if pend_txt: s2.cell(row=ri, column=6).font = red_font
+            if extra_txt: s2.cell(row=ri, column=7).font = green_font
+            if pct_txt.endswith('%') and q['done'] >= (q['target'] or 0):
+                s2.cell(row=ri, column=5).font = green_font
+            if pct_txt in ('no target set', 'no work recorded'):
+                s2.cell(row=ri, column=5).font = mut_font
+            if ri % 2 == 0:
+                for c2 in range(1, 8): s2.cell(row=ri, column=c2).fill = zebra_fill
+            for c2 in range(1, 8): s2.cell(row=ri, column=c2).border = thin
+            ri += 1
+    autow(s2)
+
+    # ---- Sheet 3: Pending Work ----
+    s3 = wb.create_sheet('Pending Work')
+    s3.append(['Task', 'Client', 'Assigned to', 'Status', 'Due date', 'Qty', 'Overdue?'])
+    style_header(s3, 1, 7, orange_fill, white_bold)
+    tstr = today_ist().isoformat()
+    ri = 2
+    for t in [t for t in r['tasks'] if t['status'] != 'done']:
+        over = bool(t['due'] and t['due'] < tstr)
+        s3.append([t['title'] + (f" ×{t['qty']}" if t['qty'] > 1 else ''), t['client'] or '—',
+                   t['assignee'] or 'UNASSIGNED', t['status'], t['due'] or '—', t['qty'],
+                   'YES' if over else ''])
+        if not t['assignee']: s3.cell(row=ri, column=3).font = red_font
+        if over:
+            s3.cell(row=ri, column=5).font = red_font
+            s3.cell(row=ri, column=7).font = red_font
+        if ri % 2 == 0:
+            for c2 in range(1, 8): s3.cell(row=ri, column=c2).fill = zebra_fill
+        ri += 1
+    if ri == 2:
+        s3.append(['All caught up — no pending tasks!'])
+        s3.cell(row=2, column=1).font = green_font
+    autow(s3)
+
+    # ---- Sheet 4: Employee Performance ----
+    s4 = wb.create_sheet('Employee Performance')
+    s4.append(['Employee', 'Role', 'Delivered', 'Open', 'Overdue', 'Share of month %', 'Work breakdown'])
+    style_header(s4, 1, 7, orange_fill, white_bold)
+    tot = max(1, T['delivered_month'])
+    ri = 2
+    for e in r['employees']:
+        share = round(e['delivered'] * 100 / tot)
+        s4.append([e['name'], e['title'] or e['role'], e['delivered'], e['open'], e['overdue'],
+                   f"{share}%", e['services']])
+        s4.cell(row=ri, column=1).font = Font(bold=True)
+        s4.cell(row=ri, column=3).font = green_font
+        if e['overdue']: s4.cell(row=ri, column=5).font = red_font
+        if share >= 40: s4.cell(row=ri, column=6).font = green_font
+        elif share > 0: s4.cell(row=ri, column=6).font = orange_font
+        if ri % 2 == 0:
+            for c2 in range(1, 8): s4.cell(row=ri, column=c2).fill = zebra_fill
+        ri += 1
+    autow(s4)
+
     buf = io.BytesIO()
     wb.save(buf)
     return jsonify(filename=f"BuzzFlow-Report-{today_ist().isoformat()}.xlsx",
