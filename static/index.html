@@ -572,44 +572,6 @@ function svcValue(selId, inputId){
   if(sel&&sel.value!=='__custom__')return sel.value;
   return (inp?inp.value.trim():'')||'Other';
 }
-function toggleQuickClient(){document.getElementById('quickClient').classList.toggle('hide')}
-function toggleQuickQuota(){
-  const el=document.getElementById('quickQuota');
-  el.classList.toggle('hide');
-  const sel=document.getElementById('qqSvc');
-  if(sel&&!sel._wired){sel._wired=true;
-    sel.onchange=()=>{const t=document.getElementById('qqSvcTxt');
-      if(sel.value==='__custom__'){t.style.display='';t.focus()}else{t.style.display='none';t.value=''}}}
-}
-async function quickAddQuota(){
-  const cid=+document.getElementById('tClient').value;
-  if(!cid)return toast('Select a client first (above)');
-  const sel=document.getElementById('qqSvc');
-  const svc=sel.value==='__custom__'?document.getElementById('qqSvcTxt').value.trim():sel.value;
-  const target=+document.getElementById('qqTarget').value;
-  if(!svc)return toast('Pick or type a service');
-  if(!target)return toast('Enter the monthly target');
-  try{
-    await api('/clients/'+cid+'/quotas',{method:'POST',body:JSON.stringify({service:svc,target})});
-    document.getElementById('qqTarget').value='';
-    document.getElementById('quickQuota').classList.add('hide');
-    toast('Quota saved: '+target+' '+svc+'/month ✓');
-  }catch(e){toast(e)}
-}
-async function quickAddClient(){
-  const name=document.getElementById('qcName').value.trim();
-  if(!name)return toast('Enter the client name');
-  try{
-    const j=await api('/clients',{method:'POST',body:JSON.stringify({name,contact_phone:document.getElementById('qcPhone').value})});
-    const sel=document.getElementById('tClient');
-    const opt=document.createElement('option');
-    opt.value=j.id;opt.textContent=name;opt.selected=true;
-    sel.appendChild(opt);
-    document.getElementById('qcName').value='';document.getElementById('qcPhone').value='';
-    document.getElementById('quickClient').classList.add('hide');
-    toast('Client "'+name+'" added & selected ✓ — you can add another anytime');
-  }catch(e){toast(e)}
-}
 let MODAL_STATUS='todo';
 function pickStatus(s){MODAL_STATUS=s;document.querySelectorAll('#statSeg button').forEach(b=>b.classList.toggle('on',b.dataset.s===s))}
 async function taskModal(id){
@@ -620,44 +582,14 @@ async function taskModal(id){
   MODAL_STATUS=t?.status||'todo';
   const canAssign=ME.role!=='employee';
   const canDelete=ME.role!=='employee'&&id;
-  const svcOpts=[...new Set([...(sv.services||[]).map(x=>x.name),...(CACHE.tasks||[]).map(x=>x.service)])].filter(Boolean);
+  WB_SVC=[...new Set([...(sv.services||[]).map(x=>x.name),...(CACHE.tasks||[]).map(x=>x.service)])].filter(Boolean);
+  WB_CL=cl.clients;
   openModal(`
    <button class="x" onclick="closeModal()">×</button>
    <h2 class="serif">${id?'Edit task':'New task'}</h2>
    <label>Title</label><input id="tTitle" value="${esc(t?.title||'')}" placeholder="e.g. Diwali offer reel">
-   <div class="mrow"><div><label>Client</label><select id="tClient">
-     <option value="">— none —</option>${cl.clients.map(c=>`<option value="${c.id}" ${t?.client_id===c.id?'selected':''}>${esc(c.name)}</option>`).join('')}</select>
-     <button class="addline" style="display:block;margin-top:5px" onclick="toggleQuickClient()">＋ Add client &amp; work</button>
-     <div id="quickClient" class="hide" style="margin-top:8px;padding:10px;border:1.5px dashed var(--line);border-radius:12px">
-       <input id="qcName" placeholder="New client / brand name" style="margin-bottom:6px">
-       <div style="display:flex;gap:6px">
-         <input id="qcPhone" placeholder="Phone (optional)">
-         <button class="btn" style="padding:9px 14px;font-size:12.5px;flex:none" onclick="quickAddClient()">Save</button>
-       </div>
-       <div class="hsub" style="margin-top:5px;font-size:11px">Client is added &amp; selected instantly — the task you're filling is their first work.</div>
-     </div></div>
-   <div><label>Service</label>
-     <select id="tServiceSel" onchange="svcSelChange(this,'tService')">
-       ${svcOpts.map(s=>`<option value="${esc(s)}" ${t?.service===s?'selected':''}>${esc(s)}</option>`).join('')}
-       <option value="__custom__" ${t&&t.service&&!svcOpts.includes(t.service)?'selected':''}>✏️ Type manually…</option>
-     </select>
-     <input id="tService" value="${esc(t?.service||'')}" placeholder="Type service name"
-       style="margin-top:6px;${t&&t.service&&!svcOpts.includes(t.service)?'':'display:none'}"></div></div>
-   <div class="mrow"><div><label>Quantity</label><input id="tQty" type="number" min="1" value="${t?.qty||1}"></div>
-   <div><label>Priority</label><select id="tPri">${['low','medium','high','urgent'].map(p=>`<option ${t?.priority===p||(!t&&p==='medium')?'selected':''}>${p}</option>`).join('')}</select></div>
-   <div><label>Due date</label><input id="tDue" type="date" value="${t?.due||''}"></div></div>
-   ${ME.role!=='employee'?`
-   <button class="addline" style="display:block;margin-top:4px" onclick="toggleQuickQuota()">＋ Add service quota for this client</button>
-   <div id="quickQuota" class="hide" style="margin-top:8px;padding:10px;border:1.5px dashed var(--line);border-radius:12px">
-     <div style="display:flex;gap:6px;align-items:flex-end">
-       <div style="flex:2"><label style="margin-top:0">Service</label>
-         <select id="qqSvc">${svcOpts.map(x=>`<option>${esc(x)}</option>`).join('')}<option value="__custom__">✏️ Type manually…</option></select>
-         <input id="qqSvcTxt" placeholder="Service name" style="margin-top:5px;display:none"></div>
-       <div style="flex:1"><label style="margin-top:0">Per month</label><input id="qqTarget" type="number" min="1" placeholder="e.g. 6"></div>
-       <button class="btn" style="padding:9px 14px;font-size:12.5px;flex:none" onclick="quickAddQuota()">Save</button>
-     </div>
-     <div class="hsub" style="margin-top:5px;font-size:11px">Adds/updates the monthly quota for the client selected above.</div>
-   </div>`:''}
+   <div id="workBlocks">${workBlock(0,t)}</div>
+   ${!id?`<button class="addline" style="display:block;margin-top:2px" onclick="addWorkBlock()">＋ Add one more client for this task</button>`:''}
    ${canAssign?`<label>Assignee</label><select id="tAss"><option value="">— unassigned —</option>
      ${tm.team.filter(u=>u.active).map(u=>`<option value="${u.id}" ${t?.assignee_id===u.id?'selected':''}>${esc(u.name)} (${esc(u.title||roleLabel(u.role))})</option>`).join('')}</select>`:''}
    <label>Notes</label><textarea id="tNotes" rows="2">${esc(t?.notes||'')}</textarea>
@@ -667,16 +599,71 @@ async function taskModal(id){
    </div>
    <button class="btn orange full" onclick="saveTask(${id||'null'})">${id?'Save changes':'Create task'}</button>
    ${canDelete?`<button class="danger" onclick="delTask(${id})">Delete task</button>`:''}`);
+  WB_N=1;
+  wireWorkBlocks();
+}
+let WB_SVC=[], WB_CL=[], WB_N=0;
+function workBlock(i,t){
+  WB_N=Math.max(WB_N,i+1);
+  const custom=t&&t.service&&!WB_SVC.includes(t.service);
+  return `<div class="workblock" data-i="${i}" style="border:1.5px solid var(--line);border-radius:14px;padding:11px 12px;margin-top:10px;position:relative">
+    ${i>0?`<button style="position:absolute;top:8px;right:10px;color:var(--red);font-size:16px" onclick="this.parentElement.remove()">×</button>
+    <div style="font-size:10px;font-weight:700;letter-spacing:.1em;color:var(--orange);margin-bottom:2px">CLIENT ${i+1}</div>`:''}
+    <div class="mrow"><div><label style="margin-top:2px">Client</label><select class="wbClient">
+      <option value="">— none —</option>${WB_CL.map(c=>`<option value="${c.id}" ${t?.client_id===c.id?'selected':''}>${esc(c.name)}</option>`).join('')}
+      <option value="__new__">＋ New client…</option></select>
+      <input class="wbNewClient" placeholder="New client name" style="margin-top:6px;display:none"></div>
+    <div><label style="margin-top:2px">Service</label>
+      <select class="wbSvcSel">
+        ${WB_SVC.map(x=>`<option value="${esc(x)}" ${t?.service===x?'selected':''}>${esc(x)}</option>`).join('')}
+        <option value="__custom__" ${custom?'selected':''}>✏️ Type manually…</option>
+      </select>
+      <input class="wbSvcTxt" value="${custom?esc(t.service):''}" placeholder="Type service name" style="margin-top:6px;${custom?'':'display:none'}"></div></div>
+    <div class="mrow"><div><label>Quantity</label><input class="wbQty" type="number" min="1" value="${t?.qty||1}"></div>
+    <div><label>Priority</label><select class="wbPri">${['low','medium','high','urgent'].map(p=>`<option ${t?.priority===p||(!t&&p==='medium')?'selected':''}>${p}</option>`).join('')}</select></div>
+    <div><label>Due date</label><input class="wbDue" type="date" value="${t?.due||''}"></div></div>
+  </div>`;
+}
+function addWorkBlock(){
+  document.getElementById('workBlocks').insertAdjacentHTML('beforeend',workBlock(WB_N,null));
+  wireWorkBlocks();
+}
+function wireWorkBlocks(){
+  document.querySelectorAll('#workBlocks .workblock').forEach(b=>{
+    const cs=b.querySelector('.wbClient'), ci=b.querySelector('.wbNewClient');
+    if(!cs._w){cs._w=1;cs.onchange=()=>{const nw=cs.value==='__new__';ci.style.display=nw?'':'none';if(nw)ci.focus()}}
+    const ss=b.querySelector('.wbSvcSel'), si=b.querySelector('.wbSvcTxt');
+    if(!ss._w){ss._w=1;ss.onchange=()=>{const cu=ss.value==='__custom__';si.style.display=cu?'':'none';if(cu)si.focus();else si.value=''}}
+  });
 }
 async function saveTask(id){
-  const body={title:$('#tTitle').value,client_id:$('#tClient').value?+$('#tClient').value:null,
-    service:svcValue('tServiceSel','tService'),qty:+$('#tQty').value||1,priority:$('#tPri').value,
-    due:$('#tDue').value||null,notes:$('#tNotes').value,status:MODAL_STATUS};
-  if($('#tAss'))body.assignee_id=$('#tAss').value?+$('#tAss').value:null;
+  const title=$('#tTitle').value.trim();
+  if(!title)return toast('Enter a title');
+  const blocks=[...document.querySelectorAll('#workBlocks .workblock')];
+  if(!blocks.length)return toast('Add at least one client block');
+  const shared={title,notes:$('#tNotes').value,status:MODAL_STATUS};
+  if($('#tAss'))shared.assignee_id=$('#tAss').value?+$('#tAss').value:null;
   try{
-    if(id)await api('/tasks/'+id,{method:'PUT',body:JSON.stringify(body)});
-    else await api('/tasks',{method:'POST',body:JSON.stringify(body)});
-    closeModal();toast('Saved ✓');renderTasks();
+    let made=0;
+    for(const b of blocks){
+      let cid=b.querySelector('.wbClient').value;
+      if(cid==='__new__'){
+        const nm=b.querySelector('.wbNewClient').value.trim();
+        if(!nm){toast('Enter the new client name');return}
+        const j=await api('/clients',{method:'POST',body:JSON.stringify({name:nm})});
+        cid=j.id;
+      }
+      const ss=b.querySelector('.wbSvcSel');
+      const svc=ss.value==='__custom__'?(b.querySelector('.wbSvcTxt').value.trim()||'Other'):ss.value;
+      const body={...shared,client_id:cid?+cid:null,service:svc,
+        qty:+b.querySelector('.wbQty').value||1,priority:b.querySelector('.wbPri').value,
+        due:b.querySelector('.wbDue').value||null};
+      if(id){await api('/tasks/'+id,{method:'PUT',body:JSON.stringify(body)})}
+      else{await api('/tasks',{method:'POST',body:JSON.stringify(body)});made++}
+    }
+    closeModal();
+    toast(id?'Saved ✓':(made>1?made+' tasks created — one per client ✓':'Task created ✓'));
+    renderTasks();
   }catch(e){toast(e)}
 }
 async function delTask(id){if(!confirm('Delete this task?'))return;await api('/tasks/'+id,{method:'DELETE'});closeModal();toast('Deleted');renderTasks()}
@@ -752,8 +739,8 @@ async function renderClients(){
      <div class="h1 serif">Your <span class="it">clients.</span></div>
      <div class="hsub">Packages, quotas & live delivery progress${ME.role==='owner'?' · fees visible only to you':''}</div></div>
      <div style="display:flex;gap:8px">
-      ${canEdit?'<button class="btn ghost" onclick="renderServicesPage()">🛠 Services</button>':''}
-      ${canEdit?'<button class="btn" onclick="clientModal()">+ Add Client</button>':''}</div></div>
+      ${canEdit?'<button class="btn" onclick="clientModal()">+ Add Client</button>':''}
+      ${canEdit?'<button class="btn" style="background:linear-gradient(135deg,#8A6FC8,#A78BE0);color:#fff;box-shadow:0 5px 15px rgba(138,111,200,.35)" onclick="renderServicesPage()">🛠 Services</button>':''}</div></div>
    <div class="grid g2" id="clientsGrid">
     ${j.clients.map(c=>`
      <div class="card client-card" ${canEdit?`style="cursor:pointer" onclick="clientModal(${c.id})"`:''}>
