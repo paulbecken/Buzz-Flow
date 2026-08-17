@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>BuzzFlow — Master Panel</title>
+<meta name="robots" content="noindex,nofollow">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+<style>
+:root{
+  --orange:#FF5A1F; --orange2:#FF8A5C; --ink:#E8EAF0; --mut:#8A90A0; --line:rgba(255,255,255,.09);
+  --bg:#101318; --card:#181C24; --card2:#1F242E;
+  --green:#3DBB78; --amber:#E0A030; --red:#E05252; --purple:#8A6FC8; --blue:#4A90D9;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Poppins',sans-serif;background:var(--bg);color:var(--ink);font-size:14px;-webkit-font-smoothing:antialiased;min-height:100vh}
+.serif{font-family:'DM Serif Display',serif;font-weight:400}
+button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
+input,select,textarea{font-family:inherit;font-size:13.5px;border:1.5px solid var(--line);border-radius:10px;padding:9px 12px;background:var(--card2);color:var(--ink);width:100%;outline:none}
+input:focus,select:focus,textarea:focus{border-color:var(--orange)}
+input::placeholder{color:var(--mut)}
+label{font-size:10.5px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--mut);display:block;margin:11px 0 4px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;background:var(--orange);color:#fff;font-weight:600;font-size:13px;padding:10px 18px;border-radius:11px;transition:.15s}
+.btn:hover{filter:brightness(1.1)}
+.btn.ghost{background:var(--card2);border:1.5px solid var(--line);color:var(--ink)}
+.btn.ghost:hover{border-color:var(--orange);color:var(--orange)}
+.btn.full{width:100%;margin-top:16px}
+.btn.sm{padding:6px 11px;font-size:11.5px;border-radius:8px}
+
+#gate{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:var(--bg);z-index:100;padding:20px}
+.gate-card{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:38px 34px;width:100%;max-width:380px}
+.gate-card h1{font-size:22px;margin-top:14px}
+.crown{width:46px;height:46px;border-radius:14px;background:linear-gradient(135deg,var(--orange),var(--orange2));display:flex;align-items:center;justify-content:center;font-size:22px}
+.err{color:var(--red);font-size:12.5px;margin-top:10px;display:none}
+
+#panel{display:none;max-width:1280px;margin:0 auto;padding:26px 22px 80px}
+.tophead{display:flex;justify-content:space-between;align-items:center;margin-bottom:22px;flex-wrap:wrap;gap:10px}
+.tophead .t .crumb{font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--orange);font-weight:700}
+.tophead .t h1{font-size:26px}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:11px;margin-bottom:22px}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:15px;padding:14px 16px}
+.stat .v{font-family:'DM Serif Display',serif;font-size:24px}
+.stat .l{font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--mut);margin-top:4px}
+
+.sec{font-size:15px;font-weight:700;margin:24px 0 12px;display:flex;justify-content:space-between;align-items:center}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px 18px;margin-bottom:12px}
+
+/* workspace table */
+.wst{width:100%;border-collapse:collapse;font-size:12.5px}
+.wst th{text-align:left;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--mut);padding:8px 10px;border-bottom:1px solid var(--line)}
+.wst td{padding:11px 10px;border-bottom:1px solid var(--line);vertical-align:middle}
+.wst tr:hover td{background:var(--card2)}
+.wsname{font-weight:700;font-size:13.5px}
+.wsmail{font-size:11px;color:var(--mut)}
+.badge{display:inline-block;font-size:9.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:3px 10px;border-radius:20px}
+.badge.active{background:rgba(61,187,120,.15);color:var(--green)}
+.badge.trial{background:rgba(74,144,217,.15);color:var(--blue)}
+.badge.expiring{background:rgba(224,160,48,.16);color:var(--amber)}
+.badge.expired{background:rgba(224,82,82,.16);color:var(--red)}
+.badge.suspended{background:rgba(224,82,82,.3);color:#fff}
+.acts{display:flex;gap:5px;flex-wrap:wrap}
+
+/* plans */
+.plangrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:11px}
+.plan{background:var(--card2);border:1px solid var(--line);border-radius:14px;padding:14px}
+.plan .nm{font-weight:700;font-size:14px;color:var(--orange)}
+.plan .pr{font-family:'DM Serif Display',serif;font-size:19px;margin-top:4px}
+.plan .mm{font-size:11px;color:var(--mut);margin-top:2px}
+
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:60;display:none;align-items:center;justify-content:center;padding:16px}
+.modal-bg.show{display:flex}
+.modal{background:var(--card);border:1px solid var(--line);border-radius:18px;width:100%;max-width:520px;max-height:90vh;overflow-y:auto;padding:24px}
+.modal h2{font-size:19px;margin-bottom:2px}
+.modal .x{float:right;font-size:20px;color:var(--mut);padding:2px 8px}
+.mrow{display:flex;gap:10px}.mrow>div{flex:1}
+.danger{color:var(--red);font-size:12px;font-weight:600;margin-top:12px}
+.credbox{background:var(--card2);border:1.5px dashed var(--orange);border-radius:12px;padding:14px;margin-top:14px;font-size:13px;line-height:1.8}
+.credbox b{color:var(--orange)}
+
+#toast{position:fixed;bottom:30px;left:50%;transform:translateX(-50%);background:#fff;color:#111;padding:11px 22px;border-radius:30px;font-size:13px;z-index:80;opacity:0;transition:.25s;pointer-events:none;max-width:90vw;text-align:center}
+#toast.show{opacity:1}
+@media(max-width:800px){
+  .wst thead{display:none}
+  .wst tr{display:block;border:1px solid var(--line);border-radius:12px;margin-bottom:10px;padding:8px}
+  .wst td{display:block;border:none;padding:5px 8px}
+}
+</style>
+</head>
+<body>
+
+<div id="gate">
+  <div class="gate-card">
+    <div class="crown">👑</div>
+    <h1 class="serif">Master <span style="color:var(--orange);font-style:italic">Panel.</span></h1>
+    <div style="color:var(--mut);font-size:12.5px;margin-top:2px">Restricted area — BuzzFlow control room</div>
+    <label>Master password</label>
+    <input id="mpw" type="password" placeholder="••••••••••">
+    <div class="err" id="gerr"></div>
+    <button class="btn full" onclick="mLogin()">Enter →</button>
+  </div>
+</div>
+
+<div id="panel">
+  <div class="tophead">
+    <div class="t"><div class="crumb">BuzzFlow Control Room</div><h1 class="serif">Master <span style="color:var(--orange);font-style:italic">panel.</span></h1></div>
+    <div style="display:flex;gap:8px">
+      <button class="btn" onclick="createWsModal()">＋ Create Workspace</button>
+      <button class="btn ghost" onclick="mLogout()">Lock panel</button>
+    </div>
+  </div>
+  <div class="stats" id="stats"></div>
+  <div class="sec">🏢 Workspaces <span style="font-size:11px;color:var(--mut);font-weight:400">tap a row's buttons to manage</span></div>
+  <div class="card" style="overflow-x:auto"><table class="wst" id="wsTable"></table></div>
+  <div class="sec">💳 Plans <span style="font-size:11px;color:var(--mut);font-weight:400">fully editable — your pricing, your rules</span>
+    <button class="btn sm ghost" onclick="addPlanModal()">＋ Add plan</button></div>
+  <div class="plangrid" id="planGrid"></div>
+</div>
+
+<div class="modal-bg" id="modalBg" onclick="if(event.target===this)closeModal()"><div class="modal" id="modal"></div></div>
+<div id="toast"></div>
+
+<script>
+let MT=sessionStorage.getItem('bf_master')||'';
+let DATA=null;
+const $=q=>document.querySelector(q);
+const esc=s=>(s??'').toString().replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const inr=n=>'₹'+Number(n||0).toLocaleString('en-IN');
+function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2600)}
+async function mapi(path,opts={}){
+  const headers={'Content-Type':'application/json','X-Master-Token':MT};
+  const r=await fetch('/api/master'+path,{headers,...opts});
+  const j=await r.json().catch(()=>({}));
+  if(r.status===401&&path!=='/login'){sessionStorage.removeItem('bf_master');location.reload();throw 'session expired'}
+  if(!r.ok) throw j.error||'Request failed';
+  return j;
+}
+async function mLogin(){
+  try{
+    const r=await fetch('/api/master/login',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({password:$('#mpw').value})});
+    const j=await r.json();
+    if(!r.ok)throw j.error;
+    MT=j.token;sessionStorage.setItem('bf_master',MT);
+    boot();
+  }catch(e){const el=$('#gerr');el.textContent=typeof e==='string'?e:'Login failed';el.style.display='block'}
+}
+function mLogout(){sessionStorage.removeItem('bf_master');location.reload()}
+
+async function boot(){
+  $('#gate').style.display='none';$('#panel').style.display='block';
+  await refresh();
+}
+async function refresh(){
+  DATA=await mapi('/overview');
+  const s=DATA.stats;
+  $('#stats').innerHTML=`
+    <div class="stat"><div class="v">${s.total}</div><div class="l">Workspaces</div></div>
+    <div class="stat"><div class="v" style="color:var(--green)">${s.active}</div><div class="l">Active / Trial</div></div>
+    <div class="stat"><div class="v" style="color:var(--amber)">${s.expiring}</div><div class="l">Expiring ≤7d</div></div>
+    <div class="stat"><div class="v" style="color:var(--red)">${s.expired}</div><div class="l">Expired / Suspended</div></div>
+    <div class="stat"><div class="v">${s.users}</div><div class="l">Total users</div></div>
+    <div class="stat"><div class="v" style="color:var(--orange)">${inr(s.revenue_month)}</div><div class="l">Collected this month</div></div>`;
+  $('#wsTable').innerHTML=`
+    <thead><tr><th>Workspace</th><th>Plan</th><th>Status</th><th>Expires</th><th>Team</th><th>Clients</th><th>Tasks/mo</th><th>Paid total</th><th>Actions</th></tr></thead>
+    <tbody>${DATA.workspaces.map(w=>`
+      <tr>
+        <td><div class="wsname">${esc(w.name)}</div><div class="wsmail">${esc(w.owner_name)} · ${esc(w.owner_email)}</div>
+          ${w.notes?`<div class="wsmail" style="color:var(--purple)">📝 ${esc(w.notes)}</div>`:''}</td>
+        <td>${esc(w.plan)}</td>
+        <td><span class="badge ${w.status}">${w.status}</span></td>
+        <td>${w.expires_on||'—'}${w.days_left!==null&&w.days_left>=0?`<div class="wsmail">${w.days_left}d left</div>`:''}</td>
+        <td>${w.members}</td><td>${w.clients}</td><td>${w.tasks_month}</td>
+        <td>${inr(w.total_paid)}</td>
+        <td><div class="acts">
+          <button class="btn sm" onclick="extendModal(${w.id})">⏳ Extend</button>
+          <button class="btn sm ghost" onclick="editWsModal(${w.id})">✎</button>
+          <button class="btn sm ghost" onclick="resetModal(${w.id})">🔑</button>
+          <button class="btn sm ghost" onclick="impersonate(${w.id})">👁</button>
+          ${w.status==='suspended'
+            ?`<button class="btn sm ghost" style="color:var(--green)" onclick="setStatus(${w.id},'active')">▶</button>`
+            :`<button class="btn sm ghost" style="color:var(--red)" onclick="setStatus(${w.id},'suspended')">⏸</button>`}
+        </div></td>
+      </tr>`).join('')||'<tr><td colspan="9" style="color:var(--mut)">No workspaces yet — create your first!</td></tr>'}</tbody>`;
+  $('#planGrid').innerHTML=DATA.plans.map(p=>`
+    <div class="plan">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start">
+        <div><div class="nm">${esc(p.name)}</div>
+          <div class="pr">${p.price_m?inr(p.price_m)+'/mo':'Free'}</div>
+          <div class="mm">${p.price_y?inr(p.price_y)+'/yr · ':''}${p.max_members?('up to '+p.max_members+' members'):'unlimited members'}</div></div>
+        <div style="display:flex;gap:4px">
+          <button class="btn sm ghost" onclick="editPlanModal(${p.id})">✎</button>
+          <button class="btn sm ghost" style="color:var(--red)" onclick="delPlan(${p.id})">×</button>
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+/* ---- modals ---- */
+function openModal(h){$('#modal').innerHTML=h;$('#modalBg').classList.add('show')}
+function closeModal(){$('#modalBg').classList.remove('show')}
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal()});
+document.addEventListener('keydown',e=>{if(e.key==='Enter'&&document.activeElement===$('#mpw'))mLogin()});
+
+function createWsModal(){
+  openModal(`
+   <button class="x" onclick="closeModal()">×</button>
+   <h2 class="serif">Create workspace</h2>
+   <div style="color:var(--mut);font-size:12px">You'll get the login credentials to share with the owner</div>
+   <label>Company / workspace name</label><input id="cwName" placeholder="e.g. XYZ Media">
+   <div class="mrow">
+     <div><label>Owner name</label><input id="cwOwner" placeholder="e.g. Priya Mehta"></div>
+     <div><label>Owner email (login)</label><input id="cwEmail" type="email" placeholder="owner@xyz.com"></div>
+   </div>
+   <div class="mrow">
+     <div><label>Password</label><input id="cwPw" value="${'BF'+Math.random().toString(36).slice(2,8).toUpperCase()}"></div>
+     <div><label>Team invite code</label><input id="cwCode" placeholder="auto-generated if empty"></div>
+   </div>
+   <div class="mrow">
+     <div><label>Plan</label><select id="cwPlan">${DATA.plans.map(p=>`<option ${p.name==='Trial'?'selected':''}>${esc(p.name)}</option>`).join('')}</select></div>
+     <div><label>Paid months <span style="text-transform:none">(Trial = auto 14 days)</span></label><input id="cwMonths" type="number" min="0" value="0"></div>
+   </div>
+   <button class="btn full" onclick="createWs()">Create workspace →</button>`);
+}
+async function createWs(){
+  try{
+    const body={name:$('#cwName').value,owner_name:$('#cwOwner').value,owner_email:$('#cwEmail').value,
+      password:$('#cwPw').value,invite_code:$('#cwCode').value,plan:$('#cwPlan').value,months:+$('#cwMonths').value||0};
+    const j=await mapi('/workspaces',{method:'POST',body:JSON.stringify(body)});
+    const loginUrl=location.origin+'/';
+    openModal(`
+     <button class="x" onclick="closeModal();refresh()">×</button>
+     <h2 class="serif">✅ Workspace created!</h2>
+     <div class="credbox" id="credBox">
+       <b>Send these to the owner:</b><br>
+       🔗 Login: ${loginUrl}<br>
+       📧 Email: ${esc(body.owner_email)}<br>
+       🔒 Password: ${esc(body.password)}<br>
+       🎟 Team invite code: ${esc(j.invite_code)}<br>
+       📅 Valid till: ${j.expires_on||'no expiry set'}
+     </div>
+     <button class="btn full" onclick="copyCreds()">📋 Copy credentials</button>
+     <button class="btn ghost full" style="margin-top:8px" onclick="waCreds('${esc(body.owner_email)}','${esc(body.password)}','${esc(j.invite_code)}','${j.expires_on||''}')">📤 Send on WhatsApp</button>`);
+  }catch(e){toast(e)}
+}
+function copyCreds(){
+  const el=document.getElementById('credBox');
+  navigator.clipboard?.writeText(el.innerText).then(()=>toast('Copied ✓')).catch(()=>toast('Long-press to copy'));
+}
+function waCreds(email,pw,code,exp){
+  const msg=`Welcome to BuzzFlow! 🎉\\n\\nYour workspace is ready:\\n🔗 ${location.origin}/\\n📧 Email: ${email}\\n🔒 Password: ${pw}\\n🎟 Team invite code: ${code}${exp?'\\n📅 Valid till: '+exp:''}\\n\\nLogin and start managing your team!`;
+  window.open('https://wa.me/?text='+encodeURIComponent(msg),'_blank');
+}
+
+function extendModal(id){
+  const w=DATA.workspaces.find(x=>x.id===id);
+  openModal(`
+   <button class="x" onclick="closeModal()">×</button>
+   <h2 class="serif">Extend — ${esc(w.name)}</h2>
+   <div style="color:var(--mut);font-size:12px">Current expiry: ${w.expires_on||'none'} · Plan: ${esc(w.plan)}</div>
+   <div class="mrow">
+     <div><label>Add months</label><select id="exM"><option>1</option><option>3</option><option>6</option><option selected>12</option></select></div>
+     <div><label>Payment received (₹)</label><input id="exAmt" type="number" placeholder="0 = don't log payment"></div>
+   </div>
+   <label>Note (optional)</label><input id="exNote" placeholder="e.g. GPay ref 12345">
+   <button class="btn full" onclick="doExtend(${id})">Extend & activate →</button>`);
+}
+async function doExtend(id){
+  try{
+    const j=await mapi('/workspaces/'+id+'/extend',{method:'POST',body:JSON.stringify({
+      months:+$('#exM').value,amount:+$('#exAmt').value||0,note:$('#exNote').value})});
+    closeModal();toast('Extended till '+j.expires_on+' ✓');refresh();
+  }catch(e){toast(e)}
+}
+
+function editWsModal(id){
+  const w=DATA.workspaces.find(x=>x.id===id);
+  openModal(`
+   <button class="x" onclick="closeModal()">×</button>
+   <h2 class="serif">Edit — ${esc(w.name)}</h2>
+   <label>Plan</label><select id="ewPlan">${DATA.plans.map(p=>`<option ${w.plan===p.name?'selected':''}>${esc(p.name)}</option>`).join('')}</select>
+   <label>Expiry date</label><input id="ewExp" type="date" value="${w.expires_on||''}">
+   <label>Private notes (only you see this)</label><textarea id="ewNotes" rows="2" placeholder="e.g. paid via GPay, referred by...">${esc(w.notes)}</textarea>
+   <button class="btn full" onclick="saveWs(${id})">Save</button>
+   <button class="danger" onclick="delWs(${id})">Delete workspace permanently (all their data)</button>`);
+}
+async function saveWs(id){
+  try{await mapi('/workspaces/'+id,{method:'PUT',body:JSON.stringify({
+      plan:$('#ewPlan').value,expires_on:$('#ewExp').value||null,mnotes:$('#ewNotes').value})});
+    closeModal();toast('Saved ✓');refresh();
+  }catch(e){toast(e)}
+}
+async function delWs(id){
+  const w=DATA.workspaces.find(x=>x.id===id);
+  if(!confirm('DELETE "'+w.name+'" and ALL their data forever?'))return;
+  if(!confirm('Are you REALLY sure? This cannot be undone.'))return;
+  try{await mapi('/workspaces/'+id,{method:'DELETE'});closeModal();toast('Deleted');refresh()}catch(e){toast(e)}
+}
+async function setStatus(id,st){
+  try{await mapi('/workspaces/'+id,{method:'PUT',body:JSON.stringify({wstatus:st})});
+    toast(st==='suspended'?'Suspended ⏸':'Reactivated ▶');refresh()}catch(e){toast(e)}
+}
+function resetModal(id){
+  const w=DATA.workspaces.find(x=>x.id===id);
+  const np='BF'+Math.random().toString(36).slice(2,8).toUpperCase();
+  openModal(`
+   <button class="x" onclick="closeModal()">×</button>
+   <h2 class="serif">Reset owner password</h2>
+   <div style="color:var(--mut);font-size:12px">${esc(w.owner_email)}</div>
+   <label>New password</label><input id="rpPw" value="${np}">
+   <button class="btn full" onclick="doReset(${id})">Reset →</button>`);
+}
+async function doReset(id){
+  try{await mapi('/workspaces/'+id+'/reset-owner',{method:'POST',body:JSON.stringify({password:$('#rpPw').value})});
+    closeModal();toast('Password reset ✓ — share it with the owner')}catch(e){toast(e)}
+}
+async function impersonate(id){
+  try{
+    const j=await mapi('/workspaces/'+id+'/impersonate',{method:'POST'});
+    localStorage.setItem('bf_token',j.token);
+    window.open('/','_blank');
+    toast('Opened their workspace in a new tab 👁');
+  }catch(e){toast(e)}
+}
+
+/* plans */
+function editPlanModal(id){
+  const p=DATA.plans.find(x=>x.id===id);
+  openModal(`
+   <button class="x" onclick="closeModal()">×</button>
+   <h2 class="serif">Edit plan</h2>
+   <label>Name</label><input id="plName" value="${esc(p.name)}">
+   <div class="mrow">
+     <div><label>Price / month (₹)</label><input id="plM" type="number" value="${p.price_m}"></div>
+     <div><label>Price / year (₹)</label><input id="plY" type="number" value="${p.price_y}"></div>
+   </div>
+   <label>Max members (0 = unlimited)</label><input id="plMax" type="number" value="${p.max_members}">
+   <button class="btn full" onclick="savePlan(${id})">Save plan</button>`);
+}
+async function savePlan(id){
+  try{await mapi('/plans/'+id,{method:'PUT',body:JSON.stringify({name:$('#plName').value,
+      price_m:+$('#plM').value||0,price_y:+$('#plY').value||0,max_members:+$('#plMax').value||0})});
+    closeModal();toast('Plan saved ✓');refresh()}catch(e){toast(e)}
+}
+function addPlanModal(){
+  openModal(`
+   <button class="x" onclick="closeModal()">×</button>
+   <h2 class="serif">New plan</h2>
+   <label>Name</label><input id="plName" placeholder="e.g. Enterprise">
+   <div class="mrow">
+     <div><label>Price / month (₹)</label><input id="plM" type="number" value="0"></div>
+     <div><label>Price / year (₹)</label><input id="plY" type="number" value="0"></div>
+   </div>
+   <label>Max members (0 = unlimited)</label><input id="plMax" type="number" value="0">
+   <button class="btn full" onclick="addPlan()">Create plan</button>`);
+}
+async function addPlan(){
+  try{await mapi('/plans',{method:'POST',body:JSON.stringify({name:$('#plName').value,
+      price_m:+$('#plM').value||0,price_y:+$('#plY').value||0,max_members:+$('#plMax').value||0})});
+    closeModal();toast('Plan added ✓');refresh()}catch(e){toast(e)}
+}
+async function delPlan(id){
+  if(!confirm('Delete this plan? Workspaces on it keep working, but you should reassign them.'))return;
+  try{await mapi('/plans/'+id,{method:'DELETE'});toast('Deleted');refresh()}catch(e){toast(e)}
+}
+
+/* auto-login if session alive */
+if(MT){mapi('/overview').then(()=>boot()).catch(()=>{sessionStorage.removeItem('bf_master')})}
+</script>
+</body>
+</html>

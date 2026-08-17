@@ -50,7 +50,7 @@ class PgConn:
         def __iter__(self):
             return iter(self.cur.fetchall())
 
-    _ID_TABLES = ('workspaces', 'users', 'clients', 'quotas', 'tasks', 'updates', 'services')
+    _ID_TABLES = ('workspaces', 'users', 'clients', 'quotas', 'tasks', 'updates', 'services', 'plans', 'wpayments')
 
     def execute(self, sql, params=()):
         q = sql.replace('?', '%s')
@@ -143,16 +143,37 @@ SCHEMA = """
     CREATE TABLE IF NOT EXISTS services(
       id {PK}, workspace_id INTEGER NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
       name TEXT NOT NULL);
+    CREATE TABLE IF NOT EXISTS plans(
+      id {PK}, name TEXT NOT NULL, price_m INTEGER DEFAULT 0, price_y INTEGER DEFAULT 0,
+      max_members INTEGER DEFAULT 0);
+    CREATE TABLE IF NOT EXISTS wpayments(
+      id {PK}, workspace_id INTEGER NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+      amount REAL NOT NULL DEFAULT 0, note TEXT DEFAULT '', paid_on TEXT);
+    CREATE TABLE IF NOT EXISTS msessions(
+      token TEXT PRIMARY KEY, created_at TEXT);
 """
+
+WS_MIGRATIONS = (
+    "ALTER TABLE workspaces ADD COLUMN {IFNE} plan TEXT DEFAULT 'Pro'",
+    "ALTER TABLE workspaces ADD COLUMN {IFNE} expires_on TEXT",
+    "ALTER TABLE workspaces ADD COLUMN {IFNE} wstatus TEXT DEFAULT 'active'",
+    "ALTER TABLE workspaces ADD COLUMN {IFNE} mnotes TEXT DEFAULT ''",
+)
 
 def init_db():
     if USE_PG:
         conn = PgConn(DATABASE_URL)
         conn.executescript(SCHEMA.format(PK='BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY'))
+        for mig in WS_MIGRATIONS:
+            try: conn.executescript(mig.format(IFNE='IF NOT EXISTS'))
+            except Exception: pass
         conn.close()
     else:
         conn = sqlite3.connect(DB)
         conn.executescript(SCHEMA.format(PK='INTEGER PRIMARY KEY'))
+        for mig in WS_MIGRATIONS:
+            try: conn.execute(mig.format(IFNE=''))
+            except Exception: pass
         conn.commit()
         conn.close()
 
@@ -189,6 +210,15 @@ def me():
 def wsid():
     return session['ws']
 
+def ws_locked(ws_id):
+    w = db().execute("SELECT wstatus, expires_on FROM workspaces WHERE id=?", (ws_id,)).fetchone()
+    if not w: return "Workspace not found"
+    if (w['wstatus'] or 'active') == 'suspended':
+        return "This workspace has been suspended. Please contact BuzzFlow support."
+    if w['expires_on'] and w['expires_on'] < today_ist().isoformat():
+        return "Your subscription has ended. Please contact BuzzFlow to renew."
+    return None
+
 @app.before_request
 def token_auth():
     auth = request.headers.get('Authorization', '')
@@ -197,7 +227,10 @@ def token_auth():
                               JOIN users u ON u.id=k.user_id
                               WHERE k.token=? AND u.active=1""", (auth[7:],)).fetchone()
         if row:
-            session['uid'], session['role'], session['ws'] = row['id'], row['role'], row['workspace_id']
+            if ws_locked(row['workspace_id']):
+                session.clear()
+            else:
+                session['uid'], session['role'], session['ws'] = row['id'], row['role'], row['workspace_id']
 
 def issue_token(uid):
     token = secrets.token_hex(24)
@@ -249,17 +282,8 @@ def signup():
         return jsonify(error="Please enter a valid email"), 400
 
     if mode == 'create':
-        ws_name = (d.get('workspace_name') or '').strip()
-        code = (d.get('invite_code') or '').strip()
-        if not ws_name:
-            return jsonify(error="Enter your company / workspace name"), 400
-        if len(code) < 4:
-            return jsonify(error="Set a team invite code (min 4 characters)"), 400
-        role, title = 'owner', (title or 'Owner')
-        cur = db().execute("INSERT INTO workspaces(name,invite_code,created_at) VALUES(?,?,?)",
-                           (ws_name, code, now_ist().isoformat()))
-        ws = cur.lastrowid
-    else:  # join
+        return jsonify(error="New workspaces are created by the BuzzFlow team. Contact us to get started!"), 403
+    if True:  # join
         p = parse_join_token(d.get('join_token') or '')
         if not p:
             return jsonify(error="Paste the invite link or scan the QR from your owner"), 400
@@ -268,6 +292,15 @@ def signup():
             return jsonify(error="Invalid invite — ask your owner for a fresh link/QR"), 403
         role, ws = 'employee', w['id']
         title = title or 'Team Member'
+        lock = ws_locked(ws)
+        if lock:
+            return jsonify(error=lock), 402
+        wp = db().execute("SELECT plan FROM workspaces WHERE id=?", (ws,)).fetchone()
+        pl = db().execute("SELECT max_members FROM plans WHERE name=?", (wp['plan'] or 'Pro',)).fetchone()
+        if pl and pl['max_members']:
+            cur_n = db().execute("SELECT COUNT(*) n FROM users WHERE workspace_id=? AND active=1", (ws,)).fetchone()['n']
+            if cur_n >= pl['max_members']:
+                return jsonify(error="This workspace has reached its member limit. Ask your owner to upgrade the plan."), 402
 
     salt = secrets.token_hex(8)
     try:
@@ -293,6 +326,9 @@ def login():
                      ((d.get('email') or '').strip().lower(),)).fetchone()
     if not u or hashpw(d.get('password',''), u['salt']) != u['pw']:
         return jsonify(error="Invalid email or password"), 401
+    lock = ws_locked(u['workspace_id'])
+    if lock:
+        return jsonify(error=lock), 402
     session['uid'], session['role'], session['ws'] = u['id'], u['role'], u['workspace_id']
     return jsonify(token=issue_token(u['id']), user=userdict(u))
 
@@ -306,7 +342,13 @@ def logout():
 @app.get('/api/me')
 @login_required
 def whoami():
-    return jsonify(user=userdict(me()))
+    w = db().execute("SELECT expires_on, plan FROM workspaces WHERE id=?", (wsid(),)).fetchone()
+    warn = None
+    if w and w['expires_on']:
+        days = (date.fromisoformat(w['expires_on']) - today_ist()).days
+        if 0 <= days <= 7:
+            warn = f"Your {w['plan'] or ''} plan expires in {days} day{'s' if days != 1 else ''}. Please renew to avoid interruption."
+    return jsonify(user=userdict(me()), expiry_warning=warn)
 
 # ---------------- invite / QR ----------------
 @app.get('/api/invite-code')
@@ -721,6 +763,12 @@ def team_add():
     d = request.json or {}
     if not all((d.get(k) or '').strip() for k in ('name','email','password')):
         return jsonify(error="name, email, password required"), 400
+    w = db().execute("SELECT plan FROM workspaces WHERE id=?", (wsid(),)).fetchone()
+    p = db().execute("SELECT max_members FROM plans WHERE name=?", (w['plan'] or 'Pro',)).fetchone()
+    if p and p['max_members']:
+        cur_n = db().execute("SELECT COUNT(*) n FROM users WHERE workspace_id=? AND active=1", (wsid(),)).fetchone()['n']
+        if cur_n >= p['max_members']:
+            return jsonify(error=f"Your {w['plan']} plan allows up to {p['max_members']} members. Contact BuzzFlow to upgrade."), 402
     salt = secrets.token_hex(8)
     try:
         db().execute("""INSERT INTO users(workspace_id,name,email,salt,pw,role,title,created_at)
@@ -1026,6 +1074,197 @@ def services_del(sid):
     if not r: return jsonify(error="not found"), 404
     db().execute("DELETE FROM services WHERE id=?", (sid,)); db().commit()
     return jsonify(ok=True)
+
+# ================= MASTER PANEL =================
+MASTER_PASSWORD = os.environ.get('MASTER_PASSWORD', 'change-me-please')
+
+def master_required(f):
+    @wraps(f)
+    def w(*a, **k):
+        auth = request.headers.get('X-Master-Token', '')
+        row = db().execute("SELECT 1 FROM msessions WHERE token=?", (auth,)).fetchone() if auth else None
+        if not row: return jsonify(error="master auth required"), 401
+        return f(*a, **k)
+    return w
+
+@app.post('/api/master/login')
+def master_login():
+    import time as _t
+    _t.sleep(1.2)
+    if (request.json or {}).get('password') != MASTER_PASSWORD:
+        return jsonify(error="Wrong master password"), 401
+    token = secrets.token_hex(24)
+    db().execute("INSERT INTO msessions(token,created_at) VALUES(?,?)", (token, now_ist().isoformat()))
+    db().commit()
+    return jsonify(token=token)
+
+def seed_plans():
+    n = db().execute("SELECT COUNT(*) n FROM plans").fetchone()['n']
+    if not n:
+        for p in (('Trial', 0, 0, 5), ('Starter', 999, 9990, 5),
+                  ('Growth', 1999, 19990, 15), ('Pro', 3499, 34990, 0)):
+            db().execute("INSERT INTO plans(name,price_m,price_y,max_members) VALUES(?,?,?,?)", p)
+        db().commit()
+
+@app.get('/api/master/overview')
+@master_required
+def master_overview():
+    seed_plans()
+    d = db(); today = today_ist().isoformat()
+    wss = d.execute("SELECT * FROM workspaces ORDER BY id").fetchall()
+    out = []
+    month = today_ist().strftime('%Y-%m')
+    for w in wss:
+        owner = d.execute("SELECT name,email FROM users WHERE workspace_id=? AND role='owner' LIMIT 1", (w['id'],)).fetchone()
+        members = d.execute("SELECT COUNT(*) n FROM users WHERE workspace_id=? AND active=1", (w['id'],)).fetchone()['n']
+        clients = d.execute("SELECT COUNT(*) n FROM clients WHERE workspace_id=?", (w['id'],)).fetchone()['n']
+        tasks_m = d.execute("SELECT COUNT(*) n FROM tasks WHERE workspace_id=? AND substr(created_at,1,7)=?", (w['id'], month)).fetchone()['n']
+        exp = w['expires_on']
+        days_left = (date.fromisoformat(exp) - today_ist()).days if exp else None
+        if (w['wstatus'] or 'active') == 'suspended': status = 'suspended'
+        elif exp and exp < today: status = 'expired'
+        elif days_left is not None and days_left <= 7: status = 'expiring'
+        elif (w['plan'] or '') == 'Trial': status = 'trial'
+        else: status = 'active'
+        paid = d.execute("SELECT COALESCE(SUM(amount),0) s FROM wpayments WHERE workspace_id=?", (w['id'],)).fetchone()['s'] or 0
+        out.append(dict(id=w['id'], name=w['name'], plan=w['plan'] or 'Pro',
+                        expires_on=exp, days_left=days_left, status=status, notes=w['mnotes'] or '',
+                        owner_name=owner['name'] if owner else '—', owner_email=owner['email'] if owner else '—',
+                        members=members, clients=clients, tasks_month=tasks_m, total_paid=round(paid, 2)))
+    rev_month = d.execute("SELECT COALESCE(SUM(amount),0) s FROM wpayments WHERE substr(paid_on,1,7)=?", (month,)).fetchone()['s'] or 0
+    plans = [dict(r) for r in d.execute("SELECT * FROM plans ORDER BY price_m").fetchall()]
+    return jsonify(workspaces=out, plans=plans,
+                   stats=dict(total=len(out),
+                              active=len([w for w in out if w['status'] in ('active', 'trial')]),
+                              expiring=len([w for w in out if w['status'] == 'expiring']),
+                              expired=len([w for w in out if w['status'] in ('expired', 'suspended')]),
+                              users=sum(w['members'] for w in out),
+                              revenue_month=round(rev_month, 2)))
+
+@app.post('/api/master/workspaces')
+@master_required
+def master_create_ws():
+    d = request.json or {}
+    name = (d.get('name') or '').strip()
+    oname = (d.get('owner_name') or '').strip()
+    email = (d.get('owner_email') or '').strip().lower()
+    pw = d.get('password') or ''
+    plan = (d.get('plan') or 'Trial').strip()
+    months = int(d.get('months') or 0)
+    if not name or not oname or not email or len(pw) < 4:
+        return jsonify(error="Workspace name, owner name, email & password (4+) required"), 400
+    code = (d.get('invite_code') or '').strip() or secrets.token_hex(3).upper()
+    if plan == 'Trial':
+        exp = (today_ist() + timedelta(days=14)).isoformat()
+    elif months > 0:
+        exp = (today_ist() + timedelta(days=30 * months)).isoformat()
+    else:
+        exp = None
+    cur = db().execute("INSERT INTO workspaces(name,invite_code,created_at,plan,expires_on,wstatus) VALUES(?,?,?,?,?,'active')",
+                       (name, code, now_ist().isoformat(), plan, exp))
+    ws = cur.lastrowid
+    salt = secrets.token_hex(8)
+    try:
+        db().execute("""INSERT INTO users(workspace_id,name,email,salt,pw,role,title,created_at)
+                        VALUES(?,?,?,?,?,'owner','Owner',?)""",
+                     (ws, oname, email, salt, hashpw(pw, salt), now_ist().isoformat()))
+        db().commit()
+    except Exception as ex:
+        if not _is_unique_violation(ex): raise
+        db().execute("DELETE FROM workspaces WHERE id=?", (ws,)); db().commit()
+        return jsonify(error="That email is already registered"), 400
+    return jsonify(id=ws, invite_code=code, expires_on=exp)
+
+@app.post('/api/master/workspaces/<int:wid>/extend')
+@master_required
+def master_extend(wid):
+    d = request.json or {}
+    months = int(d.get('months') or 0)
+    if months <= 0: return jsonify(error="months required"), 400
+    w = db().execute("SELECT expires_on FROM workspaces WHERE id=?", (wid,)).fetchone()
+    if not w: return jsonify(error="not found"), 404
+    base = today_ist()
+    if w['expires_on'] and date.fromisoformat(w['expires_on']) > base:
+        base = date.fromisoformat(w['expires_on'])
+    new_exp = (base + timedelta(days=30 * months)).isoformat()
+    db().execute("UPDATE workspaces SET expires_on=?, wstatus='active' WHERE id=?", (new_exp, wid))
+    amount = float(d.get('amount') or 0)
+    if amount > 0:
+        db().execute("INSERT INTO wpayments(workspace_id,amount,note,paid_on) VALUES(?,?,?,?)",
+                     (wid, amount, d.get('note', f'{months} month(s) extension'), today_ist().isoformat()))
+    db().commit()
+    return jsonify(ok=True, expires_on=new_exp)
+
+@app.put('/api/master/workspaces/<int:wid>')
+@master_required
+def master_edit_ws(wid):
+    d = request.json or {}
+    w = db().execute("SELECT * FROM workspaces WHERE id=?", (wid,)).fetchone()
+    if not w: return jsonify(error="not found"), 404
+    db().execute("UPDATE workspaces SET plan=?, wstatus=?, mnotes=?, expires_on=? WHERE id=?",
+                 (d.get('plan', w['plan']), d.get('wstatus', w['wstatus'] or 'active'),
+                  d.get('mnotes', w['mnotes'] or ''), d.get('expires_on', w['expires_on']), wid))
+    db().commit()
+    return jsonify(ok=True)
+
+@app.post('/api/master/workspaces/<int:wid>/reset-owner')
+@master_required
+def master_reset_owner(wid):
+    pw = (request.json or {}).get('password') or ''
+    if len(pw) < 4: return jsonify(error="password min 4 chars"), 400
+    u = db().execute("SELECT id FROM users WHERE workspace_id=? AND role='owner' LIMIT 1", (wid,)).fetchone()
+    if not u: return jsonify(error="owner not found"), 404
+    salt = secrets.token_hex(8)
+    db().execute("UPDATE users SET salt=?, pw=? WHERE id=?", (salt, hashpw(pw, salt), u['id']))
+    db().execute("DELETE FROM tokens WHERE user_id=?", (u['id'],))
+    db().commit()
+    return jsonify(ok=True)
+
+@app.post('/api/master/workspaces/<int:wid>/impersonate')
+@master_required
+def master_impersonate(wid):
+    u = db().execute("SELECT * FROM users WHERE workspace_id=? AND role='owner' LIMIT 1", (wid,)).fetchone()
+    if not u: return jsonify(error="owner not found"), 404
+    return jsonify(token=issue_token(u['id']), user=userdict(u))
+
+@app.delete('/api/master/workspaces/<int:wid>')
+@master_required
+def master_delete_ws(wid):
+    db().execute("DELETE FROM workspaces WHERE id=?", (wid,)); db().commit()
+    return jsonify(ok=True)
+
+@app.put('/api/master/plans/<int:pid>')
+@master_required
+def master_edit_plan(pid):
+    d = request.json or {}
+    p = db().execute("SELECT * FROM plans WHERE id=?", (pid,)).fetchone()
+    if not p: return jsonify(error="not found"), 404
+    db().execute("UPDATE plans SET name=?, price_m=?, price_y=?, max_members=? WHERE id=?",
+                 ((d.get('name') or p['name']).strip()[:30], int(d.get('price_m') or 0),
+                  int(d.get('price_y') or 0), int(d.get('max_members') or 0), pid))
+    db().commit()
+    return jsonify(ok=True)
+
+@app.post('/api/master/plans')
+@master_required
+def master_add_plan():
+    d = request.json or {}
+    if not (d.get('name') or '').strip(): return jsonify(error="name required"), 400
+    cur = db().execute("INSERT INTO plans(name,price_m,price_y,max_members) VALUES(?,?,?,?)",
+                       (d['name'].strip()[:30], int(d.get('price_m') or 0),
+                        int(d.get('price_y') or 0), int(d.get('max_members') or 0)))
+    db().commit()
+    return jsonify(id=cur.lastrowid)
+
+@app.delete('/api/master/plans/<int:pid>')
+@master_required
+def master_del_plan(pid):
+    db().execute("DELETE FROM plans WHERE id=?", (pid,)); db().commit()
+    return jsonify(ok=True)
+
+@app.get('/master')
+def master_page():
+    return send_from_directory('static', 'master.html')
 
 @app.get('/api/meta')
 def meta():

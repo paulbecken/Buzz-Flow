@@ -294,21 +294,17 @@ html.dark #toast{background:#EDEBF2;color:#1A1B22}
     <div id="signupForm" class="hide">
       <h1 class="serif">Get <span style="color:var(--orange);font-style:italic">started.</span></h1>
       <div class="sub">Create your own workspace, or join your team</div>
-      <label>I want to</label>
-      <div class="roleseg" id="modeSeg">
-        <button data-m="create" class="on" onclick="pickMode('create')">🏢 Create my workspace</button>
-        <button data-m="join" onclick="pickMode('join')">🤝 Join my team</button>
-      </div>
+      <div class="hint" style="border-top:none;padding-top:2px;margin-top:4px">🤝 Join your team's workspace below. Want a NEW workspace for your business? Contact the BuzzFlow team.</div>
       <label>Full name</label><input id="sname" placeholder="e.g. Rohan Sharma" autocomplete="name">
       <label>Email</label><input id="semail" type="email" placeholder="you@agency.com" autocomplete="email">
       <label>Password</label><input id="spass" type="password" placeholder="min 4 characters" autocomplete="new-password">
       <label>Job title <span style="text-transform:none;font-weight:400">(optional)</span></label><input id="stitle" placeholder="e.g. Video Editor">
-      <div id="createFields">
+      <div id="createFields" class="hide">
         <label>Company / workspace name</label><input id="swsname" placeholder="e.g. Buzz Media Fame">
         <label>Create a team invite code</label><input id="sinvite" placeholder="e.g. BUZZ2026">
         <div class="hint" style="border-top:none;padding-top:4px;margin-top:6px">👑 You become the one and only Owner of this workspace. Your team joins by scanning your QR (in Settings) — they can never become Owner.</div>
       </div>
-      <div id="joinFields" class="hide">
+      <div id="joinFields">
         <label>Invite link or code from your owner</label><input id="sjoin" placeholder="Scan owner's QR, or paste invite link">
         <div class="hint" id="joinHint" style="border-top:none;padding-top:4px;margin-top:6px">🎬 Scan the QR from your owner's Settings with your phone camera — this fills automatically. You join as an Employee.</div>
       </div>
@@ -376,12 +372,10 @@ async function api(path,opts={}){
 function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2300)}
 
 /* ---------- auth ---------- */
-let SIGNUP_MODE='create';
-function pickMode(m){
-  SIGNUP_MODE=m;
-  document.querySelectorAll('#modeSeg button').forEach(b=>b.classList.toggle('on',b.dataset.m===m));
-  $('#createFields').classList.toggle('hide',m!=='create');
-  $('#joinFields').classList.toggle('hide',m!=='join');
+let SIGNUP_MODE='join';
+function pickMode(m){SIGNUP_MODE='join';
+  const cf=$('#createFields');if(cf)cf.classList.add('hide');
+  const jf=$('#joinFields');if(jf)jf.classList.remove('hide');
 }
 async function checkJoinLink(){
   const h=location.hash||'';
@@ -400,7 +394,9 @@ function showSignup(){$('#loginForm').classList.add('hide');$('#signupForm').cla
 function showLogin(){$('#signupForm').classList.add('hide');$('#loginForm').classList.remove('hide')}
 async function doLogin(){
   try{const j=await api('/login',{method:'POST',body:JSON.stringify({email:$('#lemail').value,password:$('#lpass').value})});
-    TOKEN=j.token;localStorage.setItem('bf_token',j.token);ME=j.user;boot();
+    TOKEN=j.token;localStorage.setItem('bf_token',j.token);ME=j.user;
+    try{const m=await api('/me');CACHE.expiryWarn=m.expiry_warning||null}catch(e){}
+    boot();
   }catch(e){const el=$('#lerr');el.textContent=typeof e==='string'?e:'Could not sign in';el.style.display='block'}
 }
 async function doSignup(){
@@ -498,6 +494,7 @@ async function renderDash(){
   m.innerHTML=`
    <div class="mob-top"><div class="logo-mark"><div class="sq">B</div><div><div class="nm">BuzzFlow</div></div></div>
      <div style="display:flex;gap:8px"><button class="icon-btn" onclick="toggleTheme()">◐</button><button class="icon-btn" onclick="doLogout()">⎋</button></div></div>
+   ${CACHE.expiryWarn?`<div style="background:linear-gradient(135deg,rgba(224,160,48,.2),rgba(255,90,31,.12));border:1.5px solid rgba(224,160,48,.5);border-radius:14px;padding:11px 16px;margin-bottom:14px;font-size:13px;font-weight:600">⏳ ${esc(CACHE.expiryWarn)}</div>`:''}
    <div class="topbar"><div><div class="crumb">${d.month}</div>
      <div class="h1 serif">Hello, <span class="it">${esc(ME.name.split(' ')[0])}.</span></div>
      <div class="hsub">${roleLabel(ME.role)} · Here's what's happening today. Tap any card to jump in.</div></div>
@@ -1373,7 +1370,7 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal()});
 document.addEventListener('keydown',e=>{if(e.key==='Enter'&&document.activeElement===$('#lpass'))doLogin()});
 
 /* session restore or show auth */
-api('/me').then(j=>{ME=j.user;boot()}).catch(()=>{$('#auth').style.display='flex';checkJoinLink()});
+api('/me').then(j=>{ME=j.user;CACHE.expiryWarn=j.expiry_warning||null;boot()}).catch(()=>{$('#auth').style.display='flex';checkJoinLink()});
 </script>
 </body>
 </html>
