@@ -171,6 +171,7 @@ WS_MIGRATIONS = (
     "ALTER TABLE workspaces ADD COLUMN {IFNE} ref_code TEXT",
     "ALTER TABLE clients ADD COLUMN {IFNE} guest_token TEXT",
     "ALTER TABLE wpayments ADD COLUMN {IFNE} ws_label TEXT DEFAULT ''",
+    "ALTER TABLE workspaces ADD COLUMN {IFNE} creds TEXT DEFAULT ''",
     "ALTER TABLE referrals ADD COLUMN {IFNE} reward_days INTEGER DEFAULT 0",
     "ALTER TABLE wpayments ALTER COLUMN workspace_id DROP NOT NULL",
 )
@@ -1179,6 +1180,7 @@ def master_overview():
                         owner_phone='', members=members, clients=clients, tasks_month=tasks_m,
                         tasks_week=tasks_week, last_active=last_active, trial_day=trial_day,
                         referred_by=rby['name'] if rby else None, ref_bonus_days=bonus,
+                        creds=(json.loads(w['creds']) if w['creds'] else None) if 'creds' in w.keys() else None,
                         protected=ws_protected(w['id']), total_paid=round(paid, 2)))
     rev_month = d.execute("SELECT COALESCE(SUM(amount),0) s FROM wpayments WHERE substr(paid_on,1,7)=?", (month,)).fetchone()['s'] or 0
     new_month = len([x for x in wss if (x['created_at'] or '')[:7] == month])
@@ -1221,8 +1223,9 @@ def master_create_ws():
     cunit = (d.get('custom_unit') or 'days')
     if cval > 0 and cunit in ('days', 'months', 'years'):
         exp = (today_ist() + timedelta(days=cval * _unit_days(cunit))).isoformat()
-    cur = db().execute("INSERT INTO workspaces(name,invite_code,created_at,plan,expires_on,wstatus) VALUES(?,?,?,?,?,'active')",
-                       (name, code, now_ist().isoformat(), plan, exp))
+    creds = json.dumps(dict(email=email, password=pw, invite_code=code))
+    cur = db().execute("INSERT INTO workspaces(name,invite_code,created_at,plan,expires_on,wstatus,creds) VALUES(?,?,?,?,?,'active',?)",
+                       (name, code, now_ist().isoformat(), plan, exp, creds))
     ws = cur.lastrowid
     salt = secrets.token_hex(8)
     try:
@@ -1339,6 +1342,11 @@ def master_reset_owner(wid):
     salt = secrets.token_hex(8)
     db().execute("UPDATE users SET salt=?, pw=? WHERE id=?", (salt, hashpw(pw, salt), u['id']))
     db().execute("DELETE FROM tokens WHERE user_id=?", (u['id'],))
+    w = db().execute("SELECT creds FROM workspaces WHERE id=?", (wid,)).fetchone()
+    try: c = json.loads(w['creds']) if w and w['creds'] else {}
+    except Exception: c = {}
+    c['password'] = pw
+    db().execute("UPDATE workspaces SET creds=? WHERE id=?", (json.dumps(c), wid))
     db().commit()
     return jsonify(ok=True)
 
