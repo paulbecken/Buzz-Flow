@@ -153,6 +153,11 @@ SCHEMA = """
       token TEXT PRIMARY KEY, created_at TEXT);
     CREATE TABLE IF NOT EXISTS msettings(
       key TEXT PRIMARY KEY, value TEXT);
+    CREATE TABLE IF NOT EXISTS referrals(
+      id {PK}, referrer_ws INTEGER NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+      referred_ws INTEGER REFERENCES workspaces(id) ON DELETE SET NULL,
+      referred_name TEXT DEFAULT '', status TEXT DEFAULT 'pending',
+      reward_note TEXT DEFAULT '', created_at TEXT, rewarded_at TEXT);
 """
 
 WS_MIGRATIONS = (
@@ -163,6 +168,8 @@ WS_MIGRATIONS = (
     "ALTER TABLE plans ADD COLUMN {IFNE} duration_val INTEGER DEFAULT 0",
     "ALTER TABLE plans ADD COLUMN {IFNE} duration_unit TEXT DEFAULT 'days'",
     "ALTER TABLE plans ADD COLUMN {IFNE} price_pack INTEGER DEFAULT 0",
+    "ALTER TABLE workspaces ADD COLUMN {IFNE} ref_code TEXT",
+    "ALTER TABLE clients ADD COLUMN {IFNE} guest_token TEXT",
 )
 
 PROTECTED_OWNER_EMAIL = 'nkheradia@gmail.com'   # master's own workspace — can never be deleted
@@ -1138,7 +1145,7 @@ def master_overview():
         days_left = (date.fromisoformat(exp) - today_ist()).days if exp else None
         if (w['wstatus'] or 'active') == 'suspended': status = 'suspended'
         elif exp and exp < today: status = 'expired'
-        elif days_left is not None and days_left <= 7: status = 'expiring'
+        elif days_left is not None and days_left <= 15: status = 'expiring'
         elif (w['plan'] or '') == 'Trial': status = 'trial'
         else: status = 'active'
         paid = d.execute("SELECT COALESCE(SUM(amount),0) s FROM wpayments WHERE workspace_id=?", (w['id'],)).fetchone()['s'] or 0
@@ -1207,6 +1214,11 @@ def master_create_ws():
         if not _is_unique_violation(ex): raise
         db().execute("DELETE FROM workspaces WHERE id=?", (ws,)); db().commit()
         return jsonify(error="That email is already registered"), 400
+    ref = int(d.get('referred_by') or 0)
+    if ref:
+        db().execute("""INSERT INTO referrals(referrer_ws,referred_ws,referred_name,status,created_at)
+                        VALUES(?,?,?,'pending',?)""", (ref, ws, name, now_ist().isoformat()))
+        db().commit()
     return jsonify(id=ws, invite_code=code, expires_on=exp)
 
 @app.post('/api/master/workspaces/<int:wid>/extend')
@@ -1354,6 +1366,159 @@ def master_put_settings():
 def master_del_plan(pid):
     db().execute("DELETE FROM plans WHERE id=?", (pid,)); db().commit()
     return jsonify(ok=True)
+
+# ---------------- Refer & Earn (owner side) ----------------
+def get_ref_code(ws):
+    w = db().execute("SELECT ref_code, name FROM workspaces WHERE id=?", (ws,)).fetchone()
+    if w['ref_code']: return w['ref_code']
+    base = ''.join(c for c in (w['name'] or 'BF').upper() if c.isalnum())[:4] or 'BF'
+    code = base + '-' + secrets.token_hex(2).upper()
+    db().execute("UPDATE workspaces SET ref_code=? WHERE id=?", (code, ws)); db().commit()
+    return code
+
+@app.get('/api/referral')
+@role_required('owner')
+def referral_info():
+    ws = wsid()
+    code = get_ref_code(ws)
+    rows = db().execute("""SELECT referred_name, status, reward_note, created_at, rewarded_at
+                           FROM referrals WHERE referrer_ws=? ORDER BY id DESC""", (ws,)).fetchall()
+    return jsonify(code=code, referrals=[dict(r) for r in rows])
+
+# ---------------- Master: referrals ----------------
+@app.get('/api/master/referrals')
+@master_required
+def master_referrals():
+    rows = db().execute("""SELECT r.*, w1.name AS referrer_name, w2.name AS referred_ws_name
+                           FROM referrals r
+                           JOIN workspaces w1 ON w1.id=r.referrer_ws
+                           LEFT JOIN workspaces w2 ON w2.id=r.referred_ws
+                           ORDER BY r.id DESC""").fetchall()
+    codes = db().execute("SELECT id, name, ref_code FROM workspaces WHERE ref_code IS NOT NULL").fetchall()
+    return jsonify(referrals=[dict(r) for r in rows], codes=[dict(c) for c in codes])
+
+@app.post('/api/master/referrals')
+@master_required
+def master_add_referral():
+    d = request.json or {}
+    rid = int(d.get('referrer_ws') or 0)
+    if not rid: return jsonify(error="referrer workspace required"), 400
+    db().execute("""INSERT INTO referrals(referrer_ws,referred_ws,referred_name,status,created_at)
+                    VALUES(?,?,?,'pending',?)""",
+                 (rid, d.get('referred_ws') or None, (d.get('referred_name') or '').strip(),
+                  now_ist().isoformat()))
+    db().commit()
+    return jsonify(ok=True)
+
+@app.post('/api/master/referrals/<int:rid>/reward')
+@master_required
+def master_reward_referral(rid):
+    d = request.json or {}
+    r = db().execute("SELECT * FROM referrals WHERE id=?", (rid,)).fetchone()
+    if not r: return jsonify(error="not found"), 404
+    days = int(d.get('days') or 30)
+    w = db().execute("SELECT expires_on FROM workspaces WHERE id=?", (r['referrer_ws'],)).fetchone()
+    base = today_ist()
+    if w and w['expires_on'] and date.fromisoformat(w['expires_on']) > base:
+        base = date.fromisoformat(w['expires_on'])
+    new_exp = (base + timedelta(days=days)).isoformat()
+    db().execute("UPDATE workspaces SET expires_on=? WHERE id=?", (new_exp, r['referrer_ws']))
+    db().execute("UPDATE referrals SET status='rewarded', reward_note=?, rewarded_at=? WHERE id=?",
+                 (f'+{days} days free', now_ist().isoformat(), rid))
+    db().commit()
+    return jsonify(ok=True, new_expiry=new_exp)
+
+@app.delete('/api/master/referrals/<int:rid>')
+@master_required
+def master_del_referral(rid):
+    db().execute("DELETE FROM referrals WHERE id=?", (rid,)); db().commit()
+    return jsonify(ok=True)
+
+# ---------------- Master: calendar (day-wise events incl. money) ----------------
+@app.get('/api/master/calendar')
+@master_required
+def master_calendar():
+    month = request.args.get('month') or today_ist().strftime('%Y-%m')
+    d = db()
+    events = {}
+    def add(day, kind, text, amount=0):
+        if not day or not day.startswith(month): return
+        events.setdefault(day, []).append(dict(kind=kind, text=text, amount=amount))
+    for p in d.execute("""SELECT p.amount, p.note, p.paid_on, w.name FROM wpayments p
+                          LEFT JOIN workspaces w ON w.id=p.workspace_id""").fetchall():
+        add(p['paid_on'], 'payment', f"{p['name'] or 'Deleted ws'} paid" + (f" · {p['note']}" if p['note'] else ''), p['amount'])
+    for w in d.execute("SELECT name, created_at, expires_on FROM workspaces").fetchall():
+        add((w['created_at'] or '')[:10], 'created', f"Workspace created: {w['name']}")
+        add(w['expires_on'], 'expiry', f"Expires: {w['name']}")
+    for r in d.execute("""SELECT r.created_at, r.rewarded_at, r.referred_name, w.name
+                          FROM referrals r JOIN workspaces w ON w.id=r.referrer_ws""").fetchall():
+        add((r['created_at'] or '')[:10], 'referral', f"Referral by {r['name']}: {r['referred_name'] or 'new lead'}")
+        add((r['rewarded_at'] or '')[:10], 'reward', f"Reward given to {r['name']}")
+    day_money = {k: round(sum(e['amount'] for e in v if e['kind'] == 'payment'), 2) for k, v in events.items()}
+    total = round(sum(day_money.values()), 2)
+    return jsonify(month=month, events=events, day_money=day_money, month_total=total)
+
+# ---------------- Guest / client read-only link ----------------
+@app.post('/api/clients/<int:cid>/guest-link')
+@role_required('owner', 'admin')
+def guest_link(cid):
+    c = own_client(cid)
+    if not c: return jsonify(error="not found"), 404
+    tok = c['guest_token']
+    if not tok or (request.json or {}).get('regenerate'):
+        tok = secrets.token_urlsafe(16)
+        db().execute("UPDATE clients SET guest_token=? WHERE id=?", (tok, cid)); db().commit()
+    return jsonify(token=tok, url=f"/client/{tok}")
+
+@app.delete('/api/clients/<int:cid>/guest-link')
+@role_required('owner', 'admin')
+def guest_link_off(cid):
+    if not own_client(cid): return jsonify(error="not found"), 404
+    db().execute("UPDATE clients SET guest_token=NULL WHERE id=?", (cid,)); db().commit()
+    return jsonify(ok=True)
+
+@app.get('/api/guest/<token>')
+def guest_data(token):
+    c = db().execute("SELECT * FROM clients WHERE guest_token=?", (token,)).fetchone()
+    if not c: return jsonify(error="Invalid or expired link"), 404
+    if ws_locked(c['workspace_id']): return jsonify(error="This dashboard is currently unavailable"), 403
+    d = db(); month = today_ist().strftime('%Y-%m')
+    w = d.execute("SELECT name FROM workspaces WHERE id=?", (c['workspace_id'],)).fetchone()
+    raw = get_ws_setting(c['workspace_id'], 'company')
+    agency = w['name']
+    try:
+        comp = json.loads(raw) if raw else {}
+        agency = comp.get('name') or agency
+    except Exception: pass
+    qs = d.execute("SELECT service, monthly_target FROM quotas WHERE client_id=?", (c['id'],)).fetchall()
+    quotas = []
+    for q in qs:
+        done = d.execute("""SELECT COALESCE(SUM(qty),0) n FROM tasks WHERE client_id=? AND service=?
+            AND status='done' AND substr(done_at,1,7)=?""", (c['id'], q['service'], month)).fetchone()['n']
+        quotas.append(dict(service=q['service'], target=q['monthly_target'], done=done))
+    # extra services delivered without quota
+    quota_svcs = {q['service'] for q in qs}
+    extra = d.execute("""SELECT service, COALESCE(SUM(qty),0) n FROM tasks WHERE client_id=?
+        AND status='done' AND substr(done_at,1,7)=? GROUP BY service""", (c['id'], month)).fetchall()
+    for e in extra:
+        if e['service'] not in quota_svcs and e['n'] > 0:
+            quotas.append(dict(service=e['service'], target=0, done=e['n']))
+    tasks = d.execute("""SELECT title, service, qty, status, due, done_at FROM tasks
+                         WHERE client_id=? AND (substr(created_at,1,7)=? OR substr(done_at,1,7)=? OR status!='done')
+                         ORDER BY CASE WHEN due IS NULL THEN 1 ELSE 0 END, due""",
+                      (c['id'], month, month)).fetchall()
+    cal = {}
+    for t in tasks:
+        key = (t['done_at'] or '')[:10] if t['status'] == 'done' else (t['due'] or '')[:10]
+        if key: cal.setdefault(key, []).append(dict(title=t['title'], service=t['service'], status=t['status'], qty=t['qty']))
+    done_n = len([t for t in tasks if t['status'] == 'done'])
+    return jsonify(client=c['name'], agency=agency, month=today_ist().strftime('%B %Y'),
+                   quotas=quotas, calendar=cal,
+                   stats=dict(total=len(tasks), done=done_n, in_progress=len(tasks) - done_n))
+
+@app.get('/client/<token>')
+def guest_page(token):
+    return send_from_directory('static', 'guest.html')
 
 @app.get('/master')
 def master_page():

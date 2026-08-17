@@ -8,42 +8,44 @@
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
 <style>
 :root{
-  --orange:#FF5A1F; --orange2:#FF8A5C; --ink:#E8EAF0; --mut:#8A90A0; --line:rgba(255,255,255,.09);
-  --bg:#101318; --card:#181C24; --card2:#1F242E;
-  --green:#3DBB78; --amber:#E0A030; --red:#E05252; --purple:#8A6FC8; --blue:#4A90D9;
-  --sbw:212px;
+  --ink:#17181C; --mut:#7B7E88; --line:rgba(20,20,30,.1);
+  --bg:#F4F4F6; --card:#FFFFFF; --card2:#F7F7F9;
+  --green:#2E9E63; --amber:#D99114; --red:#D64545; --purple:#7A5FC0; --blue:#3D7FC4;
+  --sbw:216px;
 }
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:'Poppins',sans-serif;background:var(--bg);color:var(--ink);font-size:14px;-webkit-font-smoothing:antialiased;min-height:100vh}
 .serif{font-family:'DM Serif Display',serif;font-weight:400}
 button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
-input,select,textarea{font-family:inherit;font-size:13.5px;border:1.5px solid var(--line);border-radius:10px;padding:9px 12px;background:var(--card2);color:var(--ink);width:100%;outline:none}
-input:focus,select:focus,textarea:focus{border-color:var(--orange)}
+input,select,textarea{font-family:inherit;font-size:13.5px;border:1.5px solid var(--line);border-radius:10px;padding:9px 12px;background:var(--card);color:var(--ink);width:100%;outline:none}
+input:focus,select:focus,textarea:focus{border-color:var(--ink)}
 input::placeholder{color:var(--mut)}
 label{font-size:10.5px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--mut);display:block;margin:11px 0 4px}
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;background:var(--orange);color:#fff;font-weight:600;font-size:13px;padding:10px 18px;border-radius:11px;transition:.15s}
-.btn:hover{filter:brightness(1.1)}
-.btn.ghost{background:var(--card2);border:1.5px solid var(--line);color:var(--ink)}
-.btn.ghost:hover{border-color:var(--orange);color:var(--orange)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;background:var(--ink);color:#fff;font-weight:600;font-size:13px;padding:10px 18px;border-radius:11px;transition:.15s}
+.btn:hover{opacity:.85}
+.btn.ghost{background:var(--card);border:1.5px solid var(--line);color:var(--ink)}
+.btn.ghost:hover{border-color:var(--ink)}
 .btn.full{width:100%;margin-top:16px}
 .btn.sm{padding:6px 11px;font-size:11.5px;border-radius:8px}
+.ic{width:17px;height:17px;flex:none}
+.ic svg{width:100%;height:100%;display:block}
 
 #gate{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:var(--bg);z-index:100;padding:20px}
-.gate-card{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:38px 34px;width:100%;max-width:380px}
+.gate-card{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:38px 34px;width:100%;max-width:380px;box-shadow:0 10px 40px rgba(0,0,0,.06)}
 .gate-card h1{font-size:22px;margin-top:14px}
-.crown{width:46px;height:46px;border-radius:14px;background:linear-gradient(135deg,var(--orange),var(--orange2));display:flex;align-items:center;justify-content:center;font-size:22px}
+.mark{width:46px;height:46px;border-radius:14px;background:var(--ink);display:flex;align-items:center;justify-content:center;color:#fff}
+.mark svg{width:22px;height:22px}
 .err{color:var(--red);font-size:12.5px;margin-top:10px;display:none}
 
-/* ---- shell with sidebar ---- */
+/* shell */
 #shell{display:none}
 #sidebar{position:fixed;left:0;top:0;bottom:0;width:var(--sbw);background:var(--card);border-right:1px solid var(--line);padding:22px 14px;z-index:40;display:flex;flex-direction:column}
 .sb-brand{padding:0 8px 18px;border-bottom:1px solid var(--line);margin-bottom:14px}
-.sb-brand .crumb{font-size:9.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--orange);font-weight:700}
-.sb-brand h1{font-size:21px}
+.sb-brand .crumb{font-size:9.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--mut);font-weight:700}
+.sb-brand h1{font-size:20px}
 .nav-it{display:flex;align-items:center;gap:11px;width:100%;text-align:left;padding:11px 12px;border-radius:11px;font-size:13.5px;font-weight:500;color:var(--mut);margin-bottom:3px;transition:.15s}
 .nav-it:hover{background:var(--card2);color:var(--ink)}
-.nav-it.on{background:rgba(255,90,31,.13);color:var(--orange);font-weight:600}
-.nav-it .ic{font-size:16px;width:20px;text-align:center}
+.nav-it.on{background:var(--ink);color:#fff;font-weight:600}
 .sb-foot{margin-top:auto}
 #main{margin-left:var(--sbw);padding:26px 26px 90px;max-width:1180px}
 .tophead{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:10px}
@@ -53,12 +55,19 @@ label{font-size:10.5px;font-weight:600;letter-spacing:.08em;text-transform:upper
 .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:11px;margin-bottom:22px}
 .stat{background:var(--card);border:1px solid var(--line);border-radius:15px;padding:14px 16px;transition:.15s}
 .stat.click{cursor:pointer}
-.stat.click:hover{border-color:var(--orange)}
+.stat.click:hover{border-color:var(--ink)}
 .stat .v{font-family:'DM Serif Display',serif;font-size:24px}
 .stat .l{font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--mut);margin-top:4px}
 
 .sec{font-size:15px;font-weight:700;margin:22px 0 12px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px}
 .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px 18px;margin-bottom:12px}
+
+/* target bar */
+.tgt{margin-bottom:22px}
+.tgt .row{display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:6px}
+.tgt .big{font-family:'DM Serif Display',serif;font-size:22px}
+.tgt .bar{height:9px;border-radius:9px;background:var(--card2);border:1px solid var(--line);margin-top:10px;overflow:hidden}
+.tgt .bar i{display:block;height:100%;background:var(--green);border-radius:9px;transition:.4s}
 
 /* workspace table */
 .wst{width:100%;border-collapse:collapse;font-size:12.5px}
@@ -67,55 +76,71 @@ label{font-size:10.5px;font-weight:600;letter-spacing:.08em;text-transform:upper
 .wst tr:hover td{background:var(--card2)}
 .wsname{font-weight:700;font-size:13.5px}
 .wsmail{font-size:11px;color:var(--mut)}
+.celll{font-size:9.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--mut);display:block}
 .badge{display:inline-block;font-size:9.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:3px 10px;border-radius:20px}
-.badge.active{background:rgba(61,187,120,.15);color:var(--green)}
-.badge.trial{background:rgba(74,144,217,.15);color:var(--blue)}
-.badge.expiring{background:rgba(224,160,48,.16);color:var(--amber)}
-.badge.expired{background:rgba(224,82,82,.16);color:var(--red)}
-.badge.suspended{background:rgba(224,82,82,.3);color:#fff}
+.badge.active{background:rgba(46,158,99,.12);color:var(--green)}
+.badge.trial{background:rgba(61,127,196,.12);color:var(--blue)}
+.badge.expiring{background:rgba(217,145,20,.13);color:var(--amber)}
+.badge.expired{background:rgba(214,69,69,.12);color:var(--red)}
+.badge.suspended{background:var(--ink);color:#fff}
+.badge.pending{background:rgba(217,145,20,.13);color:var(--amber)}
+.badge.rewarded{background:rgba(46,158,99,.12);color:var(--green)}
 .acts{display:flex;gap:5px;flex-wrap:wrap}
-.fchip{font-size:11px;font-weight:600;padding:6px 13px;border-radius:20px;background:var(--card2);border:1.5px solid var(--line);color:var(--mut)}
-.fchip.on{border-color:var(--orange);color:var(--orange);background:rgba(255,90,31,.1)}
+.fchip{font-size:11px;font-weight:600;padding:6px 13px;border-radius:20px;background:var(--card);border:1.5px solid var(--line);color:var(--mut)}
+.fchip.on{border-color:var(--ink);color:#fff;background:var(--ink)}
 .trialbar{height:4px;border-radius:4px;background:var(--card2);margin-top:5px;overflow:hidden;width:90px}
 .trialbar i{display:block;height:100%;background:var(--blue)}
 
 /* plans */
 .plangrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:11px}
-.plan{background:var(--card2);border:1px solid var(--line);border-radius:14px;padding:14px}
-.plan .nm{font-weight:700;font-size:14px;color:var(--orange)}
+.plan{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px}
+.plan .nm{font-weight:700;font-size:14px}
 .plan .pr{font-family:'DM Serif Display',serif;font-size:19px;margin-top:4px}
 .plan .mm{font-size:11px;color:var(--mut);margin-top:2px}
-.pkg{margin-top:8px;font-size:11px;background:rgba(138,111,200,.14);color:var(--purple);border-radius:8px;padding:5px 9px;display:inline-block;font-weight:600}
+.pkg{margin-top:8px;font-size:11px;background:var(--card2);border:1px solid var(--line);border-radius:8px;padding:5px 9px;display:inline-block;font-weight:600}
 
 /* payments */
 .paytot{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:11px;margin-bottom:18px}
-.mgroup{font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--orange);margin:18px 0 8px;display:flex;justify-content:space-between}
+.mgroup{font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;margin:18px 0 8px;display:flex;justify-content:space-between}
 .payrow{display:flex;justify-content:space-between;align-items:center;padding:11px 4px;border-bottom:1px solid var(--line);font-size:13px;gap:10px}
 .payrow .amt{font-weight:700;color:var(--green);white-space:nowrap}
 
-.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:60;display:none;align-items:center;justify-content:center;padding:16px}
+/* calendar */
+.calhead{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.calgrid{display:grid;grid-template-columns:repeat(7,1fr);gap:5px}
+.caldow{font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--mut);text-align:center;padding:5px 0;font-weight:700}
+.calday{background:var(--card);border:1px solid var(--line);border-radius:10px;min-height:74px;padding:6px;font-size:11px;cursor:pointer;transition:.12s}
+.calday:hover{border-color:var(--ink)}
+.calday.blank{background:transparent;border:none;cursor:default}
+.calday .dn{font-weight:700;font-size:11.5px}
+.calday.today .dn{background:var(--ink);color:#fff;border-radius:6px;padding:1px 6px;display:inline-block}
+.calday .money{color:var(--green);font-weight:700;font-size:10.5px;margin-top:3px}
+.caldot{display:inline-block;width:6px;height:6px;border-radius:50%;margin:2px 2px 0 0}
+.dot-payment{background:var(--green)}.dot-created{background:var(--blue)}.dot-expiry{background:var(--red)}.dot-referral{background:var(--purple)}.dot-reward{background:var(--amber)}
+
+.modal-bg{position:fixed;inset:0;background:rgba(10,10,15,.45);z-index:60;display:none;align-items:center;justify-content:center;padding:16px}
 .modal-bg.show{display:flex}
 .modal{background:var(--card);border:1px solid var(--line);border-radius:18px;width:100%;max-width:520px;max-height:90vh;overflow-y:auto;padding:24px}
 .modal h2{font-size:19px;margin-bottom:2px}
 .modal .x{float:right;font-size:20px;color:var(--mut);padding:2px 8px}
 .mrow{display:flex;gap:10px}.mrow>div{flex:1}
 .danger{color:var(--red);font-size:12px;font-weight:600;margin-top:12px}
-.credbox{background:var(--card2);border:1.5px dashed var(--orange);border-radius:12px;padding:14px;margin-top:14px;font-size:13px;line-height:1.8}
-.credbox b{color:var(--orange)}
+.credbox{background:var(--card2);border:1.5px dashed var(--ink);border-radius:12px;padding:14px;margin-top:14px;font-size:13px;line-height:1.8}
 .protected{font-size:11px;color:var(--purple);font-weight:600;margin-top:12px}
 
-#toast{position:fixed;bottom:30px;left:50%;transform:translateX(-50%);background:#fff;color:#111;padding:11px 22px;border-radius:30px;font-size:13px;z-index:80;opacity:0;transition:.25s;pointer-events:none;max-width:90vw;text-align:center}
+#toast{position:fixed;bottom:30px;left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;padding:11px 22px;border-radius:30px;font-size:13px;z-index:80;opacity:0;transition:.25s;pointer-events:none;max-width:90vw;text-align:center}
 #toast.show{opacity:1}
 
 @media(max-width:860px){
-  #sidebar{top:auto;bottom:0;left:0;right:0;width:100%;height:62px;flex-direction:row;padding:6px 8px;border-right:none;border-top:1px solid var(--line);align-items:center;justify-content:space-around}
-  .sb-brand,.sb-foot{display:none}
-  .nav-it{flex-direction:column;gap:2px;padding:6px 8px;font-size:9px;margin:0;flex:1}
-  .nav-it .ic{font-size:18px}
+  #sidebar{top:auto;bottom:0;left:0;right:0;width:100%;height:64px;flex-direction:row;padding:6px 4px;border-right:none;border-top:1px solid var(--line);align-items:center;justify-content:space-around;overflow-x:auto}
+  .sb-brand,.sb-foot .lbl{display:none}
+  .sb-foot{margin:0}
+  .nav-it{flex-direction:column;gap:3px;padding:6px 6px;font-size:8.5px;margin:0;flex:1;min-width:52px}
   #main{margin-left:0;padding:18px 14px 110px}
   .wst thead{display:none}
   .wst tr{display:block;border:1px solid var(--line);border-radius:12px;margin-bottom:10px;padding:8px}
   .wst td{display:block;border:none;padding:5px 8px}
+  .calday{min-height:52px;padding:4px}
 }
 </style>
 </head>
@@ -123,8 +148,8 @@ label{font-size:10.5px;font-weight:600;letter-spacing:.08em;text-transform:upper
 
 <div id="gate">
   <div class="gate-card">
-    <div class="crown">👑</div>
-    <h1 class="serif">Master <span style="color:var(--orange);font-style:italic">Panel.</span></h1>
+    <div class="mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 3l2.5 5.5L20 9l-4 4 1 6-5-3-5 3 1-6-4-4 5.5-.5z"/></svg></div>
+    <h1 class="serif">Master <span style="font-style:italic">Panel.</span></h1>
     <div style="color:var(--mut);font-size:12.5px;margin-top:2px">Restricted area — BuzzFlow control room</div>
     <label>Master password</label>
     <input id="mpw" type="password" placeholder="••••••••••">
@@ -137,15 +162,17 @@ label{font-size:10.5px;font-weight:600;letter-spacing:.08em;text-transform:upper
   <div id="sidebar">
     <div class="sb-brand">
       <div class="crumb">BuzzFlow</div>
-      <h1 class="serif">Control <span style="color:var(--orange);font-style:italic">room.</span></h1>
+      <h1 class="serif">Control <span style="font-style:italic">room.</span></h1>
     </div>
-    <button class="nav-it on" data-p="dash" onclick="go('dash')"><span class="ic">📊</span>Dashboard</button>
-    <button class="nav-it" data-p="ws" onclick="go('ws')"><span class="ic">🏢</span>Workspaces</button>
-    <button class="nav-it" data-p="pay" onclick="go('pay')"><span class="ic">💰</span>Payments</button>
-    <button class="nav-it" data-p="plans" onclick="go('plans')"><span class="ic">📦</span>Plans</button>
-    <button class="nav-it" data-p="set" onclick="go('set')"><span class="ic">⚙️</span>Settings</button>
+    <button class="nav-it on" data-p="dash" onclick="go('dash')"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg></span>Dashboard</button>
+    <button class="nav-it" data-p="ws" onclick="go('ws')"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 21h18"/><path d="M5 21V7l7-4 7 4v14"/><path d="M9 21v-4h6v4"/><path d="M9 10h.01M15 10h.01M9 14h.01M15 14h.01"/></svg></span>Workspaces</button>
+    <button class="nav-it" data-p="pay" onclick="go('pay')"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="5" width="20" height="14" rx="3"/><path d="M2 10h20"/><path d="M6 15h4"/></svg></span>Payments</button>
+    <button class="nav-it" data-p="cal" onclick="go('cal')"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="3"/><path d="M8 2v4M16 2v4M3 10h18"/></svg></span>Calendar</button>
+    <button class="nav-it" data-p="plans" onclick="go('plans')"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 8l-9-5-9 5 9 5 9-5z"/><path d="M3 8v8l9 5 9-5V8"/><path d="M12 13v8"/></svg></span>Plans</button>
+    <button class="nav-it" data-p="ref" onclick="go('ref')"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="8" width="18" height="4" rx="1"/><path d="M12 8v13M5 12v9h14v-9"/><path d="M12 8c-2 0-4.5-1-4.5-3S10 2.5 12 8zM12 8c2 0 4.5-1 4.5-3S14 2.5 12 8z"/></svg></span>Referrals</button>
+    <button class="nav-it" data-p="set" onclick="go('set')"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span>Settings</button>
     <div class="sb-foot">
-      <button class="nav-it" onclick="mLogout()"><span class="ic">🔒</span>Lock panel</button>
+      <button class="nav-it" onclick="mLogout()"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg></span><span class="lbl">Log out</span></button>
     </div>
   </div>
 
@@ -155,7 +182,8 @@ label{font-size:10.5px;font-weight:600;letter-spacing:.08em;text-transform:upper
       <div class="tophead"><h1 class="serif">Dashboard</h1>
         <button class="btn" onclick="createWsModal()">＋ Create Workspace</button></div>
       <div class="stats" id="stats"></div>
-      <div class="sec">⚠️ Needs your attention</div>
+      <div class="card tgt" id="tgtCard"></div>
+      <div class="sec">Updates</div>
       <div id="attention"></div>
     </div>
 
@@ -164,7 +192,7 @@ label{font-size:10.5px;font-weight:600;letter-spacing:.08em;text-transform:upper
       <div class="tophead"><h1 class="serif">Workspaces</h1>
         <button class="btn" onclick="createWsModal()">＋ Create Workspace</button></div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;align-items:center">
-        <input id="wsSearch" placeholder="🔍 Search workspace / owner…" style="max-width:260px" oninput="renderWs()">
+        <input id="wsSearch" placeholder="Search workspace / owner…" style="max-width:260px" oninput="renderWs()">
         <button class="fchip on" data-f="all" onclick="setFilter('all')">All</button>
         <button class="fchip" data-f="active" onclick="setFilter('active')">Active</button>
         <button class="fchip" data-f="trial" onclick="setFilter('trial')">Trial</button>
@@ -181,29 +209,65 @@ label{font-size:10.5px;font-weight:600;letter-spacing:.08em;text-transform:upper
       <div class="card" id="payList"></div>
     </div>
 
+    <!-- CALENDAR -->
+    <div class="page" id="pg-cal">
+      <div class="tophead"><h1 class="serif">Calendar</h1></div>
+      <div class="card">
+        <div class="calhead">
+          <button class="btn sm ghost" onclick="calShift(-1)">← Prev</button>
+          <div style="font-weight:700" id="calTitle"></div>
+          <button class="btn sm ghost" onclick="calShift(1)">Next →</button>
+        </div>
+        <div style="font-size:11px;color:var(--mut);margin-bottom:10px">
+          <span class="caldot dot-payment"></span>Payment&nbsp;&nbsp;<span class="caldot dot-created"></span>Workspace created&nbsp;&nbsp;<span class="caldot dot-expiry"></span>Expiry&nbsp;&nbsp;<span class="caldot dot-referral"></span>Referral&nbsp;&nbsp;<span class="caldot dot-reward"></span>Reward
+          <span style="float:right;font-weight:700;color:var(--green)" id="calTotal"></span>
+        </div>
+        <div class="calgrid" id="calGrid"></div>
+      </div>
+      <div class="card" id="calDetail" style="display:none"></div>
+    </div>
+
     <!-- PLANS -->
     <div class="page" id="pg-plans">
       <div class="tophead"><h1 class="serif">Plans &amp; Packages</h1>
         <button class="btn" onclick="addPlanModal()">＋ Add plan</button></div>
-      <div style="color:var(--mut);font-size:12px;margin-bottom:14px">Fully editable — monthly &amp; yearly pricing, plus optional <b style="color:var(--purple)">custom packages</b> (any number of days / months / years at your own price).</div>
+      <div class="sec">Standard plans</div>
       <div class="plangrid" id="planGrid"></div>
+      <div class="sec">Customized packages <span style="font-size:11px;color:var(--mut);font-weight:400">any duration, any price — for special deals</span></div>
+      <div class="plangrid" id="pkgGrid"></div>
+    </div>
+
+    <!-- REFERRALS -->
+    <div class="page" id="pg-ref">
+      <div class="tophead"><h1 class="serif">Referrals</h1>
+        <button class="btn" onclick="addRefModal()">＋ Record referral</button></div>
+      <div style="color:var(--mut);font-size:12.5px;margin-bottom:14px">Workspace owners see their referral code in their app. When a referred agency becomes a client, reward the referrer with free days here.</div>
+      <div class="card" id="refList"></div>
+      <div class="sec">Referral codes</div>
+      <div class="card" id="refCodes"></div>
     </div>
 
     <!-- SETTINGS -->
     <div class="page" id="pg-set">
       <div class="tophead"><h1 class="serif">Settings</h1></div>
       <div class="card">
-        <div style="font-weight:700;margin-bottom:4px">📤 WhatsApp renewal reminder template</div>
-        <div style="color:var(--mut);font-size:12px">Used by the "Remind on WhatsApp" button. You can use <b>{name}</b>, <b>{plan}</b>, <b>{expiry}</b>, <b>{price}</b> — they get replaced automatically.</div>
+        <div style="font-weight:700;margin-bottom:4px">Monthly sales target</div>
+        <div style="color:var(--mut);font-size:12px">Shown on your dashboard with live progress from this month's collected payments.</div>
+        <div class="mrow" style="margin-top:6px"><div><label>Target (₹ per month)</label><input id="salesTgt" type="number" placeholder="e.g. 50000"></div></div>
+        <button class="btn" style="margin-top:12px" onclick="saveSettings()">Save</button>
+      </div>
+      <div class="card">
+        <div style="font-weight:700;margin-bottom:4px">WhatsApp renewal reminder template</div>
+        <div style="color:var(--mut);font-size:12px">Used by the "Remind" button. Placeholders: <b>{name}</b>, <b>{plan}</b>, <b>{expiry}</b>, <b>{price}</b>.</div>
         <textarea id="waTpl" rows="6" style="margin-top:10px"></textarea>
-        <button class="btn" style="margin-top:12px" onclick="saveSettings()">Save template</button>
+        <button class="btn" style="margin-top:12px" onclick="saveSettings()">Save</button>
       </div>
       <div class="card">
-        <div style="font-weight:700;margin-bottom:4px">🔐 Master password</div>
-        <div style="color:var(--mut);font-size:12.5px">Changed from the Render dashboard → Buzz-Flow → Environment → <b>MASTER_PASSWORD</b>. It's kept outside the app on purpose, so even a database leak can't expose it.</div>
+        <div style="font-weight:700;margin-bottom:4px">Master password</div>
+        <div style="color:var(--mut);font-size:12.5px">Changed from the Render dashboard → Buzz-Flow → Environment → <b>MASTER_PASSWORD</b>. Kept outside the app on purpose, so even a database leak can't expose it.</div>
       </div>
       <div class="card">
-        <div style="font-weight:700;margin-bottom:4px">💳 Razorpay</div>
+        <div style="font-weight:700;margin-bottom:4px">Razorpay</div>
         <div style="color:var(--mut);font-size:12.5px">Coming soon — once you buy the Razorpay gateway, payment links will be generated right from the Extend screen.</div>
       </div>
     </div>
@@ -215,8 +279,9 @@ label{font-size:10.5px;font-weight:600;letter-spacing:.08em;text-transform:upper
 
 <script>
 let MT=sessionStorage.getItem('bf_master')||'';
-let DATA=null,PAY=null,SETTINGS={},FILTER='all';
-const DEF_WA_TPL='Hi {name}! 👋\n\nYour BuzzFlow subscription ({plan} plan) is expiring on {expiry}.\n\nRenew now to keep your team running without interruption — {price}.\n\nReply here and I\'ll activate it right away! 🚀\n— Buzz Media Fame';
+let DATA=null,PAY=null,REF=null,SETTINGS={},FILTER='all';
+let CALM=new Date();CALM.setDate(1);
+const DEF_WA_TPL='Hi {name}! 👋\n\nYour BuzzFlow subscription ({plan} plan) is expiring on {expiry}.\n\nRenew now to keep your team running without interruption — {price}.\n\nReply here and I\'ll activate it right away!\n\n- BuzzFlow Team';
 const $=q=>document.querySelector(q);
 const esc=s=>(s??'').toString().replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const inr=n=>'₹'+Number(n||0).toLocaleString('en-IN');
@@ -252,19 +317,20 @@ function go(p){
   document.querySelectorAll('.page').forEach(el=>el.classList.remove('on'));
   $('#pg-'+p).classList.add('on');
   if(p==='pay')loadPayments();
+  if(p==='cal')loadCal();
+  if(p==='ref')loadRefs();
   window.scrollTo(0,0);
 }
 function setFilter(f){FILTER=f;
   document.querySelectorAll('.fchip').forEach(c=>c.classList.toggle('on',c.dataset.f===f));
   renderWs();
 }
-function goExpiring(){go('ws');setFilter('expiring')}
-function goExpired(){go('ws');setFilter('expired')}
 
 async function boot(){
   $('#gate').style.display='none';$('#shell').style.display='block';
   try{SETTINGS=await mapi('/settings')}catch(e){SETTINGS={}}
   $('#waTpl').value=SETTINGS.wa_tpl||DEF_WA_TPL;
+  $('#salesTgt').value=SETTINGS.sales_target||'';
   await refresh();
 }
 async function refresh(){
@@ -273,28 +339,42 @@ async function refresh(){
   $('#stats').innerHTML=`
     <div class="stat click" onclick="go('ws');setFilter('all')"><div class="v">${s.total}</div><div class="l">Workspaces</div></div>
     <div class="stat click" onclick="go('ws');setFilter('active')"><div class="v" style="color:var(--green)">${s.active}</div><div class="l">Active / Trial</div></div>
-    <div class="stat click" onclick="goExpiring()"><div class="v" style="color:var(--amber)">${s.expiring}</div><div class="l">Expiring ≤7d · tap</div></div>
-    <div class="stat click" onclick="goExpired()"><div class="v" style="color:var(--red)">${s.expired}</div><div class="l">Expired / Suspended</div></div>
+    <div class="stat click" onclick="go('ws');setFilter('expiring')"><div class="v" style="color:var(--amber)">${s.expiring}</div><div class="l">Expiring ≤15d</div></div>
+    <div class="stat click" onclick="go('ws');setFilter('expired')"><div class="v" style="color:var(--red)">${s.expired}</div><div class="l">Expired / Suspended</div></div>
     <div class="stat"><div class="v">${s.users}</div><div class="l">Total users</div></div>
-    <div class="stat click" onclick="go('pay')"><div class="v" style="color:var(--orange)">${inr(s.revenue_month)}</div><div class="l">Collected this month</div></div>`;
-  renderAttention();renderWs();renderPlans();
+    <div class="stat click" onclick="go('pay')"><div class="v" style="color:var(--green)">${inr(s.revenue_month)}</div><div class="l">Collected this month</div></div>`;
+  renderTarget();renderAttention();renderWs();renderPlans();
+}
+
+function renderTarget(){
+  const tgt=+SETTINGS.sales_target||0;
+  if(!tgt){$('#tgtCard').innerHTML=`<div class="row"><div style="font-weight:700">Monthly sales target</div>
+    <button class="btn sm ghost" onclick="go('set')">Set a target →</button></div>
+    <div style="color:var(--mut);font-size:12px;margin-top:4px">Set your monthly collection goal in Settings and track it here.</div>`;return}
+  const got=DATA.stats.revenue_month||0;
+  const pct=Math.min(100,Math.round(got*100/tgt));
+  $('#tgtCard').innerHTML=`<div class="row">
+    <div style="font-weight:700">Monthly sales target</div>
+    <div><span class="big" style="color:var(--green)">${inr(got)}</span> <span style="color:var(--mut)">/ ${inr(tgt)} · ${pct}%</span></div></div>
+    <div class="bar"><i style="width:${pct}%"></i></div>
+    ${pct>=100?'<div style="color:var(--green);font-weight:700;font-size:12px;margin-top:8px">Target achieved! 🎯</div>':''}`;
 }
 
 function renderAttention(){
   const items=[];
   DATA.workspaces.forEach(w=>{
     if(w.status==='expiring')items.push(`<div class="payrow"><div><b>${esc(w.name)}</b> — <span style="color:var(--amber)">expires in ${w.days_left}d</span> (${esc(w.plan)})</div>
-      <button class="btn sm" onclick="waRemind(${w.id})">📤 Remind</button></div>`);
+      <button class="btn sm" onclick="waRemind(${w.id})">Remind</button></div>`);
     if(w.status==='expired')items.push(`<div class="payrow"><div><b>${esc(w.name)}</b> — <span style="color:var(--red)">EXPIRED ${w.expires_on}</span></div>
-      <button class="btn sm" onclick="extendModal(${w.id})">⏳ Renew</button></div>`);
+      <button class="btn sm" onclick="extendModal(${w.id})">Renew</button></div>`);
     if(w.status==='trial'&&w.trial_day)items.push(`<div class="payrow"><div><b>${esc(w.name)}</b> — <span style="color:var(--blue)">Trial day ${w.trial_day} of 14</span>${w.trial_day>=10?' · <b style="color:var(--amber)">call them now!</b>':''}</div>
-      <button class="btn sm ghost" onclick="waRemind(${w.id})">📤 Nudge</button></div>`);
+      <button class="btn sm ghost" onclick="waRemind(${w.id})">Nudge</button></div>`);
     if(w.status==='active'&&w.last_active&&(Date.now()-new Date(w.last_active).getTime())>7*86400000)
-      items.push(`<div class="payrow"><div><b>${esc(w.name)}</b> — <span style="color:var(--mut)">quiet for a while (last active ${ago(w.last_active)})</span></div>
-      <button class="btn sm ghost" onclick="go('ws')">👀 Check</button></div>`);
+      items.push(`<div class="payrow"><div><b>${esc(w.name)}</b> — <span style="color:var(--mut)">quiet lately (last active ${ago(w.last_active)})</span></div>
+      <button class="btn sm ghost" onclick="go('ws')">Check</button></div>`);
   });
   $('#attention').innerHTML=items.length?`<div class="card">${items.join('')}</div>`
-    :'<div class="card" style="color:var(--mut)">All quiet — nothing urgent right now 🎉</div>';
+    :'<div class="card" style="color:var(--mut)">All quiet — nothing urgent right now.</div>';
 }
 
 function filterList(){
@@ -311,57 +391,71 @@ function filterList(){
 function renderWs(){
   const list=filterList();
   $('#wsTable').innerHTML=`
-    <thead><tr><th>Workspace</th><th>Plan</th><th>Status</th><th>Expires</th><th>Last active</th><th>Team</th><th>Clients</th><th>Tasks/wk</th><th>Paid total</th><th>Actions</th></tr></thead>
+    <thead><tr><th>Workspace</th><th>Plan</th><th>Status</th><th>Expires on</th><th>Last active</th><th>Team members</th><th>Clients</th><th>Tasks this week</th><th>Paid total</th><th>Actions</th></tr></thead>
     <tbody>${list.map(w=>`
       <tr>
-        <td><div class="wsname">${esc(w.name)} ${w.protected?'<span title="Your own workspace — protected">🛡️</span>':''}</div>
+        <td><div class="wsname">${esc(w.name)} ${w.protected?'<span title="Your own workspace — protected">🛡</span>':''}</div>
           <div class="wsmail">${esc(w.owner_name)} · ${esc(w.owner_email)}</div>
-          ${w.notes?`<div class="wsmail" style="color:var(--purple)">📝 ${esc(w.notes)}</div>`:''}</td>
-        <td>${esc(w.plan)}${w.trial_day?`<div class="wsmail">Day ${w.trial_day}/14</div><div class="trialbar"><i style="width:${Math.round(w.trial_day/14*100)}%"></i></div>`:''}</td>
-        <td><span class="badge ${w.status}">${w.status}</span></td>
-        <td>${w.expires_on||'—'}${w.days_left!==null&&w.days_left>=0?`<div class="wsmail">${w.days_left}d left</div>`:''}</td>
-        <td>${ago(w.last_active)}</td>
-        <td>${w.members}</td><td>${w.clients}</td><td>${w.tasks_week}</td>
-        <td>${inr(w.total_paid)}</td>
+          ${w.notes?`<div class="wsmail" style="color:var(--purple)">${esc(w.notes)}</div>`:''}</td>
+        <td><span class="celll">Plan</span>${esc(w.plan)}${w.trial_day?`<div class="wsmail">Day ${w.trial_day}/14</div><div class="trialbar"><i style="width:${Math.round(w.trial_day/14*100)}%"></i></div>`:''}</td>
+        <td><span class="celll">Status</span><span class="badge ${w.status}">${w.status}</span></td>
+        <td><span class="celll">Expires on</span>${w.expires_on||'—'}${w.days_left!==null&&w.days_left>=0?`<div class="wsmail">${w.days_left} days left</div>`:''}</td>
+        <td><span class="celll">Last active</span>${ago(w.last_active)}</td>
+        <td><span class="celll">Team members</span>${w.members} member${w.members===1?'':'s'}</td>
+        <td><span class="celll">Clients</span>${w.clients} client${w.clients===1?'':'s'}</td>
+        <td><span class="celll">Tasks this week</span>${w.tasks_week} task${w.tasks_week===1?'':'s'}</td>
+        <td><span class="celll">Paid total</span>${inr(w.total_paid)}</td>
         <td><div class="acts">
-          <button class="btn sm" onclick="extendModal(${w.id})">⏳ Extend</button>
-          ${(w.status==='expiring'||w.status==='expired'||w.status==='trial')?`<button class="btn sm ghost" style="color:var(--green)" onclick="waRemind(${w.id})">📤</button>`:''}
-          <button class="btn sm ghost" onclick="editWsModal(${w.id})">✎</button>
-          <button class="btn sm ghost" onclick="resetModal(${w.id})">🔑</button>
-          <button class="btn sm ghost" onclick="impersonate(${w.id})">👁</button>
+          <button class="btn sm" onclick="extendModal(${w.id})">Extend</button>
+          ${(w.status==='expiring'||w.status==='expired'||w.status==='trial')?`<button class="btn sm ghost" style="color:var(--green)" onclick="waRemind(${w.id})" title="WhatsApp reminder">Remind</button>`:''}
+          <button class="btn sm ghost" onclick="editWsModal(${w.id})" title="Edit">Edit</button>
+          <button class="btn sm ghost" onclick="resetModal(${w.id})" title="Reset owner password">Reset PW</button>
+          <button class="btn sm ghost" onclick="impersonate(${w.id})" title="Open their workspace">View</button>
           ${w.protected?'':w.status==='suspended'
-            ?`<button class="btn sm ghost" style="color:var(--green)" onclick="setStatus(${w.id},'active')">▶</button>`
-            :`<button class="btn sm ghost" style="color:var(--red)" onclick="setStatus(${w.id},'suspended')">⏸</button>`}
+            ?`<button class="btn sm ghost" style="color:var(--green)" onclick="setStatus(${w.id},'active')">Resume</button>`
+            :`<button class="btn sm ghost" style="color:var(--red)" onclick="setStatus(${w.id},'suspended')">Suspend</button>`}
         </div></td>
       </tr>`).join('')||'<tr><td colspan="10" style="color:var(--mut)">Nothing matches this filter.</td></tr>'}</tbody>`;
 }
 
-function planPriceText(p){
-  if(p.duration_val>0)return inr(p.price_pack)+' / '+p.duration_val+' '+(p.duration_val===1?p.duration_unit.replace(/s$/,''):p.duration_unit);
-  return p.price_m?inr(p.price_m)+'/mo':'Free';
+function pkgText(p){
+  return inr(p.price_pack)+' / '+p.duration_val+' '+(p.duration_val===1?p.duration_unit.replace(/s$/,''):p.duration_unit);
 }
 function renderPlans(){
-  $('#planGrid').innerHTML=DATA.plans.map(p=>`
+  const std=DATA.plans.filter(p=>!(p.duration_val>0));
+  const pkg=DATA.plans.filter(p=>p.duration_val>0);
+  $('#planGrid').innerHTML=std.map(p=>`
     <div class="plan">
       <div style="display:flex;justify-content:space-between;align-items:flex-start">
         <div><div class="nm">${esc(p.name)}</div>
-          <div class="pr">${p.price_m?inr(p.price_m)+'/mo':(p.duration_val>0?planPriceText(p):'Free')}</div>
-          <div class="mm">${p.price_y?inr(p.price_y)+'/yr · ':''}${p.max_members?('up to '+p.max_members+' members'):'unlimited members'}</div>
-          ${p.duration_val>0&&p.price_m?`<div class="pkg">📦 Package: ${planPriceText(p)}</div>`:''}
-          ${p.duration_val>0&&!p.price_m?`<div class="pkg">📦 Custom package plan</div>`:''}</div>
+          <div class="pr">${p.price_m?inr(p.price_m)+'/mo':'Free'}</div>
+          <div class="mm">${p.price_y?inr(p.price_y)+'/yr · ':''}${p.max_members?('up to '+p.max_members+' members'):'unlimited members'}</div></div>
         <div style="display:flex;gap:4px">
-          <button class="btn sm ghost" onclick="editPlanModal(${p.id})">✎</button>
+          <button class="btn sm ghost" onclick="editPlanModal(${p.id})">Edit</button>
           <button class="btn sm ghost" style="color:var(--red)" onclick="delPlan(${p.id})">×</button>
         </div>
       </div>
-    </div>`).join('');
+    </div>`).join('')||'<div style="color:var(--mut);font-size:13px">No standard plans.</div>';
+  $('#pkgGrid').innerHTML=pkg.map(p=>`
+    <div class="plan">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start">
+        <div><div class="nm">${esc(p.name)}</div>
+          <div class="pr">${pkgText(p)}</div>
+          <div class="mm">${p.max_members?('up to '+p.max_members+' members'):'unlimited members'}</div>
+          <div class="pkg">Customized package</div></div>
+        <div style="display:flex;gap:4px">
+          <button class="btn sm ghost" onclick="editPlanModal(${p.id})">Edit</button>
+          <button class="btn sm ghost" style="color:var(--red)" onclick="delPlan(${p.id})">×</button>
+        </div>
+      </div>
+    </div>`).join('')||'<div style="color:var(--mut);font-size:13px;padding:4px 2px">No customized packages yet — use “＋ Add plan” and choose Customized.</div>';
 }
 
-/* ---- payments page ---- */
+/* ---- payments ---- */
 async function loadPayments(){
   PAY=await mapi('/payments');
   $('#payTotals').innerHTML=`
-    <div class="stat"><div class="v" style="color:var(--orange)">${inr(PAY.total_all)}</div><div class="l">All-time collected</div></div>
+    <div class="stat"><div class="v" style="color:var(--green)">${inr(PAY.total_all)}</div><div class="l">All-time collected</div></div>
     <div class="stat"><div class="v" style="color:var(--green)">${inr(PAY.total_year)}</div><div class="l">This year</div></div>
     <div class="stat"><div class="v">${PAY.payments.length}</div><div class="l">Payments recorded</div></div>`;
   if(!PAY.payments.length){$('#payList').innerHTML='<div style="color:var(--mut)">No payments yet. When you tap <b>Extend</b> on a workspace and enter an amount, it appears here automatically.</div>';return}
@@ -381,19 +475,111 @@ async function delPayment(id){
   try{await mapi('/payments/'+id,{method:'DELETE'});toast('Removed');loadPayments();refresh()}catch(e){toast(e)}
 }
 
+/* ---- calendar ---- */
+function calShift(n){CALM.setMonth(CALM.getMonth()+n);loadCal()}
+async function loadCal(){
+  const mk=CALM.getFullYear()+'-'+String(CALM.getMonth()+1).padStart(2,'0');
+  const j=await mapi('/calendar?month='+mk);
+  $('#calTitle').textContent=CALM.toLocaleString('en-IN',{month:'long',year:'numeric'});
+  $('#calTotal').textContent=j.month_total?('Collected: '+inr(j.month_total)):'';
+  const first=new Date(CALM.getFullYear(),CALM.getMonth(),1).getDay();
+  const nd=new Date(CALM.getFullYear(),CALM.getMonth()+1,0).getDate();
+  const today=new Date();const isCur=today.getFullYear()===CALM.getFullYear()&&today.getMonth()===CALM.getMonth();
+  let html=['S','M','T','W','T','F','S'].map(d=>`<div class="caldow">${d}</div>`).join('');
+  for(let i=0;i<first;i++)html+='<div class="calday blank"></div>';
+  for(let d=1;d<=nd;d++){
+    const key=mk+'-'+String(d).padStart(2,'0');
+    const evs=j.events[key]||[];
+    const money=j.day_money[key]||0;
+    html+=`<div class="calday ${isCur&&today.getDate()===d?'today':''}" onclick="calDay('${key}')">
+      <div class="dn">${d}</div>
+      ${money?`<div class="money">+${inr(money)}</div>`:''}
+      <div>${evs.slice(0,5).map(e=>`<span class="caldot dot-${e.kind}"></span>`).join('')}${evs.length>5?'…':''}</div>
+    </div>`;
+  }
+  $('#calGrid').innerHTML=html;
+  window._calEvents=j.events;
+  $('#calDetail').style.display='none';
+}
+function calDay(key){
+  const evs=(window._calEvents||{})[key]||[];
+  const el=$('#calDetail');
+  const nice=new Date(key).toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  el.innerHTML=`<div style="font-weight:700;margin-bottom:8px">${nice}</div>`+
+    (evs.length?evs.map(e=>`<div class="payrow"><div><span class="caldot dot-${e.kind}"></span> ${esc(e.text)}</div>
+      ${e.amount?`<span class="amt">+${inr(e.amount)}</span>`:''}</div>`).join('')
+    :'<div style="color:var(--mut);font-size:13px">Nothing happened this day.</div>');
+  el.style.display='block';
+  el.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+
+/* ---- referrals ---- */
+async function loadRefs(){
+  REF=await mapi('/referrals');
+  $('#refList').innerHTML=REF.referrals.length?REF.referrals.map(r=>`
+    <div class="payrow">
+      <div><b>${esc(r.referrer_name)}</b> referred <b>${esc(r.referred_ws_name||r.referred_name||'—')}</b>
+        <div class="wsmail">${(r.created_at||'').slice(0,10)}${r.reward_note?' · '+esc(r.reward_note):''}</div></div>
+      <div style="display:flex;gap:6px;align-items:center">
+        <span class="badge ${r.status}">${r.status}</span>
+        ${r.status==='pending'?`<button class="btn sm" onclick="rewardRef(${r.id})">Grant reward</button>`:''}
+        <button class="btn sm ghost" style="color:var(--red)" onclick="delRef(${r.id})">×</button>
+      </div>
+    </div>`).join('')
+  :'<div style="color:var(--mut)">No referrals yet. When a workspace owner refers another agency, record it here (or pick "Referred by" while creating the new workspace).</div>';
+  $('#refCodes').innerHTML=REF.codes.length?REF.codes.map(c=>`
+    <div class="payrow"><div><b>${esc(c.name)}</b></div><div style="font-weight:700;letter-spacing:.06em">${esc(c.ref_code)}</div></div>`).join('')
+  :'<div style="color:var(--mut);font-size:13px">Codes are generated automatically the first time each owner opens Refer &amp; Earn in their app.</div>';
+}
+function addRefModal(){
+  openModal(`
+   <button class="x" onclick="closeModal()">×</button>
+   <h2 class="serif">Record referral</h2>
+   <label>Referrer (existing workspace)</label>
+   <select id="rfFrom">${DATA.workspaces.map(w=>`<option value="${w.id}">${esc(w.name)}</option>`).join('')}</select>
+   <label>Referred agency (name or existing workspace)</label>
+   <select id="rfTo"><option value="">— not created yet / type below —</option>
+     ${DATA.workspaces.map(w=>`<option value="${w.id}">${esc(w.name)}</option>`).join('')}</select>
+   <input id="rfName" placeholder="or type the referred agency's name" style="margin-top:8px">
+   <button class="btn full" onclick="addRef()">Save referral</button>`);
+}
+async function addRef(){
+  try{await mapi('/referrals',{method:'POST',body:JSON.stringify({referrer_ws:+$('#rfFrom').value,
+    referred_ws:+$('#rfTo').value||null,referred_name:$('#rfName').value})});
+    closeModal();toast('Referral recorded');loadRefs()}catch(e){toast(e)}
+}
+function rewardRef(id){
+  openModal(`
+   <button class="x" onclick="closeModal()">×</button>
+   <h2 class="serif">Grant reward</h2>
+   <div style="color:var(--mut);font-size:12.5px">Free days are added to the referrer's expiry date.</div>
+   <label>Free days</label><select id="rwDays"><option value="15">15 days</option><option value="30" selected>30 days (1 month)</option><option value="60">60 days</option></select>
+   <button class="btn full" onclick="doReward(${id})">Add free days →</button>`);
+}
+async function doReward(id){
+  try{const j=await mapi('/referrals/'+id+'/reward',{method:'POST',body:JSON.stringify({days:+$('#rwDays').value})});
+    closeModal();toast('Reward granted — new expiry '+j.new_expiry);loadRefs();refresh()}catch(e){toast(e)}
+}
+async function delRef(id){
+  if(!confirm('Delete this referral record?'))return;
+  try{await mapi('/referrals/'+id,{method:'DELETE'});toast('Deleted');loadRefs()}catch(e){toast(e)}
+}
+
 /* ---- WhatsApp reminder ---- */
 function waRemind(id){
   const w=DATA.workspaces.find(x=>x.id===id);
   const plan=DATA.plans.find(p=>p.name===w.plan);
   let price='';
-  if(plan){price=plan.duration_val>0&&plan.price_pack?planPriceText(plan):(plan.price_m?inr(plan.price_m)+'/month':'')}
+  if(plan){price=plan.duration_val>0&&plan.price_pack?pkgText(plan):(plan.price_m?inr(plan.price_m)+'/month':'')}
   const tpl=($('#waTpl').value||DEF_WA_TPL);
   const msg=tpl.replaceAll('{name}',w.owner_name).replaceAll('{plan}',w.plan)
     .replaceAll('{expiry}',w.expires_on||'soon').replaceAll('{price}',price||'ask me for pricing');
   window.open('https://wa.me/?text='+encodeURIComponent(msg),'_blank');
 }
 async function saveSettings(){
-  try{await mapi('/settings',{method:'PUT',body:JSON.stringify({wa_tpl:$('#waTpl').value})});toast('Template saved ✓')}catch(e){toast(e)}
+  try{await mapi('/settings',{method:'PUT',body:JSON.stringify({wa_tpl:$('#waTpl').value,sales_target:$('#salesTgt').value||'0'})});
+    SETTINGS.wa_tpl=$('#waTpl').value;SETTINGS.sales_target=$('#salesTgt').value;
+    toast('Settings saved');renderTarget()}catch(e){toast(e)}
 }
 
 /* ---- modals ---- */
@@ -418,29 +604,32 @@ function createWsModal(){
    </div>
    <div class="mrow">
      <div><label>Plan</label><select id="cwPlan">${DATA.plans.map(p=>`<option ${p.name==='Trial'?'selected':''}>${esc(p.name)}</option>`).join('')}</select></div>
-     <div><label>Paid months <span style="text-transform:none">(0 = use plan's package / Trial 14d)</span></label><input id="cwMonths" type="number" min="0" value="0"></div>
+     <div><label>Paid months <span style="text-transform:none">(0 = plan default)</span></label><input id="cwMonths" type="number" min="0" value="0"></div>
    </div>
+   <label>Referred by (optional)</label>
+   <select id="cwRef"><option value="">— nobody —</option>${DATA.workspaces.map(w=>`<option value="${w.id}">${esc(w.name)}</option>`).join('')}</select>
    <button class="btn full" onclick="createWs()">Create workspace →</button>`);
 }
 async function createWs(){
   try{
     const body={name:$('#cwName').value,owner_name:$('#cwOwner').value,owner_email:$('#cwEmail').value,
-      password:$('#cwPw').value,invite_code:$('#cwCode').value,plan:$('#cwPlan').value,months:+$('#cwMonths').value||0};
+      password:$('#cwPw').value,invite_code:$('#cwCode').value,plan:$('#cwPlan').value,
+      months:+$('#cwMonths').value||0,referred_by:+$('#cwRef').value||0};
     const j=await mapi('/workspaces',{method:'POST',body:JSON.stringify(body)});
     const loginUrl=location.origin+'/';
     openModal(`
      <button class="x" onclick="closeModal();refresh()">×</button>
-     <h2 class="serif">✅ Workspace created!</h2>
+     <h2 class="serif">Workspace created ✓</h2>
      <div class="credbox" id="credBox">
        <b>Send these to the owner:</b><br>
-       🔗 Login: ${loginUrl}<br>
-       📧 Email: ${esc(body.owner_email)}<br>
-       🔒 Password: ${esc(body.password)}<br>
-       🎟 Team invite code: ${esc(j.invite_code)}<br>
-       📅 Valid till: ${j.expires_on||'no expiry set'}
+       Login: ${loginUrl}<br>
+       Email: ${esc(body.owner_email)}<br>
+       Password: ${esc(body.password)}<br>
+       Team invite code: ${esc(j.invite_code)}<br>
+       Valid till: ${j.expires_on||'no expiry set'}
      </div>
-     <button class="btn full" onclick="copyCreds()">📋 Copy credentials</button>
-     <button class="btn ghost full" style="margin-top:8px" onclick="waCreds('${esc(body.owner_email)}','${esc(body.password)}','${esc(j.invite_code)}','${j.expires_on||''}')">📤 Send on WhatsApp</button>`);
+     <button class="btn full" onclick="copyCreds()">Copy credentials</button>
+     <button class="btn ghost full" style="margin-top:8px" onclick="waCreds('${esc(body.owner_email)}','${esc(body.password)}','${esc(j.invite_code)}','${j.expires_on||''}')">Send on WhatsApp</button>`);
   }catch(e){toast(e)}
 }
 function copyCreds(){
@@ -448,7 +637,7 @@ function copyCreds(){
   navigator.clipboard?.writeText(el.innerText).then(()=>toast('Copied ✓')).catch(()=>toast('Long-press to copy'));
 }
 function waCreds(email,pw,code,exp){
-  const msg=`Welcome to BuzzFlow! 🎉\n\nYour workspace is ready:\n🔗 ${location.origin}/\n📧 Email: ${email}\n🔒 Password: ${pw}\n🎟 Team invite code: ${code}${exp?'\n📅 Valid till: '+exp:''}\n\nLogin and start managing your team!`;
+  const msg=`Welcome to BuzzFlow! 🎉\n\nYour workspace is ready:\n🔗 ${location.origin}/\n📧 Email: ${email}\n🔒 Password: ${pw}\n🎟 Team invite code: ${code}${exp?'\n📅 Valid till: '+exp:''}\n\nLogin and start managing your team!\n\n- BuzzFlow Team`;
   window.open('https://wa.me/?text='+encodeURIComponent(msg),'_blank');
 }
 
@@ -486,7 +675,7 @@ function editWsModal(id){
    <label>Private notes (only you see this)</label><textarea id="ewNotes" rows="2" placeholder="e.g. paid via GPay, referred by...">${esc(w.notes)}</textarea>
    <button class="btn full" onclick="saveWs(${id})">Save</button>
    ${w.protected
-     ?'<div class="protected">🛡️ This is YOUR workspace (Buzz Media Fame) — it can never be deleted or suspended.</div>'
+     ?'<div class="protected">🛡 This is YOUR workspace (Buzz Media Fame) — it can never be deleted or suspended.</div>'
      :`<button class="danger" onclick="delWsConfirm(${id})">Delete workspace permanently (all their data)</button>`}`);
 }
 async function saveWs(id){
@@ -511,7 +700,7 @@ async function delWs(id){
 }
 async function setStatus(id,st){
   try{await mapi('/workspaces/'+id,{method:'PUT',body:JSON.stringify({wstatus:st})});
-    toast(st==='suspended'?'Suspended ⏸':'Reactivated ▶');refresh()}catch(e){toast(e)}
+    toast(st==='suspended'?'Suspended':'Reactivated');refresh()}catch(e){toast(e)}
 }
 function resetModal(id){
   const w=DATA.workspaces.find(x=>x.id===id);
@@ -532,56 +721,71 @@ async function impersonate(id){
     const j=await mapi('/workspaces/'+id+'/impersonate',{method:'POST'});
     localStorage.setItem('bf_token',j.token);
     window.open('/','_blank');
-    toast('Opened their workspace in a new tab 👁');
+    toast('Opened their workspace in a new tab');
   }catch(e){toast(e)}
 }
 
 /* plans */
-function planFields(p){
-  p=p||{name:'',price_m:0,price_y:0,max_members:0,duration_val:0,duration_unit:'days',price_pack:0};
+function stdFields(p){
+  p=p||{name:'',price_m:0,price_y:0,max_members:0};
   return `
    <label>Name</label><input id="plName" value="${esc(p.name)}" placeholder="e.g. Enterprise">
    <div class="mrow">
      <div><label>Price / month (₹)</label><input id="plM" type="number" value="${p.price_m}"></div>
      <div><label>Price / year (₹)</label><input id="plY" type="number" value="${p.price_y}"></div>
    </div>
-   <label>Max members (0 = unlimited)</label><input id="plMax" type="number" value="${p.max_members}">
-   <div style="margin-top:16px;padding:12px;border:1.5px dashed var(--purple);border-radius:12px">
-     <div style="font-size:12px;font-weight:700;color:var(--purple)">📦 Custom package (optional)</div>
-     <div style="font-size:11px;color:var(--mut)">Sell any duration at any price — e.g. 45 days for ₹1,500. New workspaces on this plan get this validity automatically. Set duration 0 to disable.</div>
-     <div class="mrow">
-       <div><label>Duration</label><input id="plDv" type="number" min="0" value="${p.duration_val||0}"></div>
-       <div><label>Unit</label><select id="plDu">
-         <option value="days" ${p.duration_unit==='days'?'selected':''}>Days</option>
-         <option value="months" ${p.duration_unit==='months'?'selected':''}>Months</option>
-         <option value="years" ${p.duration_unit==='years'?'selected':''}>Years</option></select></div>
-       <div><label>Package price (₹)</label><input id="plPp" type="number" value="${p.price_pack||0}"></div>
-     </div>
-   </div>`;
+   <label>Max members (0 = unlimited)</label><input id="plMax" type="number" value="${p.max_members}">`;
 }
-function planBody(){
-  return {name:$('#plName').value,price_m:+$('#plM').value||0,price_y:+$('#plY').value||0,
-    max_members:+$('#plMax').value||0,duration_val:+$('#plDv').value||0,
-    duration_unit:$('#plDu').value,price_pack:+$('#plPp').value||0};
-}
-function editPlanModal(id){
-  const p=DATA.plans.find(x=>x.id===id);
-  openModal(`<button class="x" onclick="closeModal()">×</button>
-   <h2 class="serif">Edit plan</h2>${planFields(p)}
-   <button class="btn full" onclick="savePlan(${id})">Save plan</button>`);
-}
-async function savePlan(id){
-  try{await mapi('/plans/'+id,{method:'PUT',body:JSON.stringify(planBody())});
-    closeModal();toast('Plan saved ✓');refresh()}catch(e){toast(e)}
+function pkgFields(p){
+  p=p||{name:'',max_members:0,duration_val:1,duration_unit:'months',price_pack:0};
+  return `
+   <label>Name</label><input id="plName" value="${esc(p.name)}" placeholder="e.g. Diwali Special">
+   <div class="mrow">
+     <div><label>Duration</label><input id="plDv" type="number" min="1" value="${p.duration_val||1}"></div>
+     <div><label>Unit</label><select id="plDu">
+       <option value="days" ${p.duration_unit==='days'?'selected':''}>Days</option>
+       <option value="months" ${p.duration_unit==='months'?'selected':''}>Months</option>
+       <option value="years" ${p.duration_unit==='years'?'selected':''}>Years</option></select></div>
+     <div><label>Package price (₹)</label><input id="plPp" type="number" value="${p.price_pack||0}"></div>
+   </div>
+   <label>Max members (0 = unlimited)</label><input id="plMax" type="number" value="${p.max_members}">`;
 }
 function addPlanModal(){
   openModal(`<button class="x" onclick="closeModal()">×</button>
-   <h2 class="serif">New plan</h2>${planFields(null)}
+   <h2 class="serif">New plan</h2>
+   <label>Plan type</label>
+   <select id="plType" onchange="planTypeSwap()">
+     <option value="std">Standard (monthly / yearly pricing)</option>
+     <option value="pkg">Customized package (fixed duration + price)</option>
+   </select>
+   <div id="plFields">${stdFields(null)}</div>
    <button class="btn full" onclick="addPlan()">Create plan</button>`);
 }
+function planTypeSwap(){
+  $('#plFields').innerHTML=$('#plType').value==='pkg'?pkgFields(null):stdFields(null);
+}
+function planBody(isPkg){
+  if(isPkg)return {name:$('#plName').value,price_m:0,price_y:0,max_members:+$('#plMax').value||0,
+    duration_val:+$('#plDv').value||0,duration_unit:$('#plDu').value,price_pack:+$('#plPp').value||0};
+  return {name:$('#plName').value,price_m:+$('#plM').value||0,price_y:+$('#plY').value||0,
+    max_members:+$('#plMax').value||0,duration_val:0,duration_unit:'days',price_pack:0};
+}
 async function addPlan(){
-  try{await mapi('/plans',{method:'POST',body:JSON.stringify(planBody())});
+  const isPkg=$('#plType').value==='pkg';
+  try{await mapi('/plans',{method:'POST',body:JSON.stringify(planBody(isPkg))});
     closeModal();toast('Plan added ✓');refresh()}catch(e){toast(e)}
+}
+function editPlanModal(id){
+  const p=DATA.plans.find(x=>x.id===id);
+  const isPkg=p.duration_val>0;
+  openModal(`<button class="x" onclick="closeModal()">×</button>
+   <h2 class="serif">Edit ${isPkg?'package':'plan'}</h2>
+   <div id="plFields">${isPkg?pkgFields(p):stdFields(p)}</div>
+   <button class="btn full" onclick="savePlan(${id},${isPkg})">Save</button>`);
+}
+async function savePlan(id,isPkg){
+  try{await mapi('/plans/'+id,{method:'PUT',body:JSON.stringify(planBody(isPkg))});
+    closeModal();toast('Saved ✓');refresh()}catch(e){toast(e)}
 }
 async function delPlan(id){
   if(!confirm('Delete this plan? Workspaces on it keep working, but you should reassign them.'))return;

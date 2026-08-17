@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Live Dashboard</title>
+<meta name="robots" content="noindex,nofollow">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+<style>
+:root{
+  --orange:#FF5A1F; --orange2:#FF8A5C; --ink:#23262E; --mut:#8A8898; --line:rgba(140,130,160,.18);
+  --bg1:#EFEAF6; --bg2:#FDEEE4; --bg3:#E8F0EE;
+  --glass:rgba(255,255,255,.66); --glass-brd:rgba(255,255,255,.8);
+  --green:#4E9B6E; --blue:#4A90D9; --amber:#E09A0D;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Poppins',sans-serif;color:var(--ink);font-size:14px;-webkit-font-smoothing:antialiased;min-height:100vh;
+  background:
+   radial-gradient(900px 600px at 85% -10%, var(--bg2) 0%, transparent 60%),
+   radial-gradient(700px 500px at -10% 40%, var(--bg3) 0%, transparent 55%),
+   var(--bg1);
+  background-attachment:fixed}
+.serif{font-family:'DM Serif Display',serif;font-weight:400}
+.wrap{max-width:860px;margin:0 auto;padding:28px 18px 70px}
+.glass{background:var(--glass);border:1px solid var(--glass-brd);border-radius:18px;box-shadow:0 8px 32px rgba(80,70,120,.12);
+  backdrop-filter:blur(18px) saturate(1.4);-webkit-backdrop-filter:blur(18px) saturate(1.4)}
+.head{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:20px}
+.mark{display:flex;align-items:center;gap:10px}
+.mark .sq{width:40px;height:40px;border-radius:12px;background:linear-gradient(135deg,var(--orange),var(--orange2));display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:19px;box-shadow:0 4px 14px rgba(255,90,31,.35)}
+.mark .ag{font-weight:700;font-size:15px}
+.mark .tg{font-size:9.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--orange);font-weight:600}
+.live{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;color:var(--green);background:rgba(78,155,110,.13);padding:6px 13px;border-radius:20px}
+.live i{width:7px;height:7px;border-radius:50%;background:var(--green);display:inline-block;animation:pulse 1.6s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+h1{font-size:27px;line-height:1.2}
+.sub{color:var(--mut);font-size:13px;margin-top:3px}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:11px;margin:20px 0}
+.kpi{padding:16px 18px;text-align:left}
+.kpi .v{font-family:'DM Serif Display',serif;font-size:26px}
+.kpi .l{font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--mut);margin-top:3px}
+.sec{font-size:15px;font-weight:700;margin:24px 0 12px}
+.card{padding:18px 20px;margin-bottom:12px}
+.qrow{margin-bottom:13px}
+.qh{display:flex;justify-content:space-between;font-size:13px;margin-bottom:5px}
+.qh .n{color:var(--mut);font-weight:600}
+.bar{height:9px;border-radius:9px;background:rgba(140,130,160,.15);overflow:hidden}
+.bar i{display:block;height:100%;background:linear-gradient(90deg,var(--orange),var(--orange2));border-radius:9px;transition:.5s}
+.bar i.full{background:linear-gradient(90deg,#4E9B6E,#6FBF8F)}
+.extra{font-size:11px;color:var(--green);font-weight:700}
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.dow{font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--mut);text-align:center;padding:4px 0;font-weight:700}
+.day{border-radius:10px;min-height:58px;padding:5px;font-size:10px;background:rgba(255,255,255,.5);border:1px solid var(--glass-brd)}
+.day.blank{background:transparent;border:none}
+.day .dn{font-weight:700;font-size:10.5px;color:var(--mut)}
+.day.today .dn{background:var(--orange);color:#fff;border-radius:5px;padding:0 5px;display:inline-block}
+.pill{display:block;font-size:8.5px;font-weight:600;border-radius:5px;padding:1px 4px;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pill.done{background:rgba(78,155,110,.18);color:#2E7A50}
+.pill.todo{background:rgba(74,144,217,.15);color:#2D6CAE}
+.foot{text-align:center;color:var(--mut);font-size:11px;margin-top:26px}
+.foot b{color:var(--orange)}
+#err{display:none;text-align:center;padding:80px 20px}
+</style>
+</head>
+<body>
+<div class="wrap" id="app" style="display:none">
+  <div class="head">
+    <div class="mark"><div class="sq" id="agIni">B</div><div><div class="ag" id="agName">—</div><div class="tg">Live client dashboard</div></div></div>
+    <span class="live"><i></i> LIVE</span>
+  </div>
+  <h1 class="serif">Hello, <span style="color:var(--orange);font-style:italic" id="clName">—</span></h1>
+  <div class="sub" id="subLine">Here's your work — updated in real time.</div>
+  <div class="cards">
+    <div class="glass kpi"><div class="v" id="kDone" style="color:var(--green)">0</div><div class="l">Delivered</div></div>
+    <div class="glass kpi"><div class="v" id="kProg">0</div><div class="l">In progress</div></div>
+    <div class="glass kpi"><div class="v" id="kTot">0</div><div class="l">Total this month</div></div>
+  </div>
+  <div class="sec">Monthly deliverables</div>
+  <div class="glass card" id="quotas"></div>
+  <div class="sec">Content calendar — <span id="calMonth"></span></div>
+  <div class="glass card"><div class="cal" id="cal"></div></div>
+  <div class="foot">Powered by <b>BuzzFlow</b> · shared with you by <span id="agFoot">your agency</span></div>
+</div>
+<div id="err">
+  <h1 class="serif">Link not available</h1>
+  <div class="sub" style="margin-top:8px">This dashboard link is invalid or has been turned off.<br>Please ask your agency for a new link.</div>
+</div>
+<script>
+const esc=s=>(s??'').toString().replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const plural=(s)=>s;
+async function boot(){
+  const tok=location.pathname.split('/').pop();
+  let j;
+  try{
+    const r=await fetch('/api/guest/'+tok);
+    if(!r.ok)throw 0;
+    j=await r.json();
+  }catch(e){document.getElementById('err').style.display='block';return}
+  document.getElementById('app').style.display='block';
+  document.getElementById('agName').textContent=j.agency;
+  document.getElementById('agIni').textContent=(j.agency||'B').charAt(0).toUpperCase();
+  document.getElementById('agFoot').textContent=j.agency;
+  document.getElementById('clName').textContent=j.client+'.';
+  document.getElementById('subLine').textContent=j.month+' — your work, updated in real time.';
+  document.getElementById('kDone').textContent=j.stats.done;
+  document.getElementById('kProg').textContent=j.stats.in_progress;
+  document.getElementById('kTot').textContent=j.stats.total;
+  document.getElementById('calMonth').textContent=j.month;
+  document.getElementById('quotas').innerHTML=j.quotas.map(q=>{
+    if(!q.target)return `<div class="qrow"><div class="qh"><b>${esc(q.service)}</b><span class="extra">+${q.done} extra delivered 🎁</span></div></div>`;
+    const pct=Math.min(100,Math.round(q.done*100/q.target));
+    return `<div class="qrow"><div class="qh"><b>${esc(q.service)}</b><span class="n">${q.done} / ${q.target}</span></div>
+      <div class="bar"><i class="${pct>=100?'full':''}" style="width:${pct}%"></i></div></div>`;
+  }).join('')||'<div style="color:var(--mut);font-size:13px">Deliverables will appear here soon.</div>';
+  // calendar
+  const now=new Date();
+  const first=new Date(now.getFullYear(),now.getMonth(),1).getDay();
+  const nd=new Date(now.getFullYear(),now.getMonth()+1,0).getDate();
+  const mk=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
+  let html=['S','M','T','W','T','F','S'].map(d=>`<div class="dow">${d}</div>`).join('');
+  for(let i=0;i<first;i++)html+='<div class="day blank"></div>';
+  for(let d=1;d<=nd;d++){
+    const key=mk+'-'+String(d).padStart(2,'0');
+    const evs=(j.calendar||{})[key]||[];
+    html+=`<div class="day ${now.getDate()===d?'today':''}"><div class="dn">${d}</div>
+      ${evs.slice(0,3).map(t=>`<span class="pill ${t.status==='done'?'done':'todo'}">${t.status==='done'?'✓ ':''}${esc(t.service)}${t.qty>1?' ×'+t.qty:''}</span>`).join('')}
+      ${evs.length>3?`<span class="pill todo">+${evs.length-3} more</span>`:''}</div>`;
+  }
+  document.getElementById('cal').innerHTML=html;
+}
+boot();
+</script>
+</body>
+</html>

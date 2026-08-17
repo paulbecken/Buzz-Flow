@@ -423,15 +423,16 @@ const ICONS={
  clients:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 21h18"/><path d="M5 21V7l7-4 7 4v14"/><path d="M9 21v-4h6v4"/><path d="M9 10h.01M15 10h.01M9 14h.01M15 14h.01"/></svg>',
  updates:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>',
  settings:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>',
- team:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2"/><circle cx="10" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>'};
+ team:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2"/><circle cx="10" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
+ refer:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="8" width="18" height="4" rx="1"/><path d="M12 8v13M5 12v9h14v-9"/><path d="M12 8c-2 0-4.5-1-4.5-3S10 2.5 12 8zM12 8c2 0 4.5-1 4.5-3S14 2.5 12 8z"/></svg>'};
 const NAV_BASE=[['dash','Dashboard'],['tasks','Tasks'],['cal','Calendar'],['updates','Updates'],['clients','Clients'],['team','Team']];
-function NAV(){const n=[...NAV_BASE];if(ME&&ME.role==='owner')n.push(['settings','Settings']);return n}
+function NAV(){const n=[...NAV_BASE];if(ME&&ME.role==='owner'){n.push(['refer','Refer & Earn']);n.push(['settings','Settings'])}return n}
 let VIEW='dash';
 function renderNav(){
   $('#nav').innerHTML=NAV().map(([k,l])=>`<button class="${VIEW===k?'on':''}" onclick="go('${k}')">${ICONS[k]}${l}</button>`).join('');
   $('#bnav').innerHTML=NAV().map(([k,l])=>`<button class="${VIEW===k?'on':''}" onclick="go('${k}')">${ICONS[k]}${l}</button>`).join('');
 }
-function go(v,arg){VIEW=v;renderNav();({dash:renderDash,tasks:renderTasks,cal:renderCal,clients:renderClients,updates:renderUpdates,team:renderTeam,settings:renderSettings}[v])(arg)}
+function go(v,arg){VIEW=v;renderNav();({dash:renderDash,tasks:renderTasks,cal:renderCal,clients:renderClients,updates:renderUpdates,team:renderTeam,settings:renderSettings,refer:renderRefer}[v])(arg)}
 
 function applyBranding(){
   const nm=COMPANY.name||'BuzzFlow';
@@ -787,6 +788,7 @@ async function clientModal(id){
    <button class="addline" onclick="document.getElementById('quotaLines').insertAdjacentHTML('beforeend',quotaLineHtml())">+ Add service quota</button>
    <label>Notes</label><textarea id="cNotes" rows="2">${esc(c?.notes||'')}</textarea>
    <button class="btn orange full" onclick="saveClient(${id||'null'})">${id?'Save changes':'Add client'}</button>
+   ${id?`<button class="btn full" style="margin-top:8px;background:linear-gradient(135deg,#4E9B6E,#6FBF8F);color:#fff" onclick="guestLink(${id})">🔗 Client's live dashboard link</button>`:''}
    ${id&&ME.role==='owner'?`<button class="danger" onclick="delClient(${id})">Delete client</button>`:''}`);
 }
 async function saveClient(id){
@@ -1195,6 +1197,71 @@ async function sendWhatsAppReport(){
 }
 
 /* ---------- SETTINGS (owner only) ---------- */
+/* ---------- guest client link ---------- */
+async function guestLink(cid){
+  try{
+    const j=await api('/clients/'+cid+'/guest-link',{method:'POST',body:JSON.stringify({})});
+    const url=location.origin+j.url;
+    const c=CACHE.clients.find(x=>x.id===cid);
+    openModal(`
+     <button class="x" onclick="closeModal()">×</button>
+     <h2 class="serif">Live dashboard — ${esc(c?.name||'client')}</h2>
+     <div class="hsub" style="margin-top:4px">Share this read-only link with your client. They see their deliverables progress and content calendar — nothing else. No login needed.</div>
+     <div style="background:var(--glass2);border:1.5px dashed var(--orange);border-radius:12px;padding:13px;margin-top:14px;font-size:12.5px;word-break:break-all" id="guestUrl">${url}</div>
+     <button class="btn orange full" onclick="waGuest('${esc(c?.name||'')}')">📤 Send to client on WhatsApp</button>
+     <button class="btn full" style="margin-top:8px" onclick="copyGuest()">Copy link</button>
+     <button class="danger" onclick="guestOff(${cid})">Turn off this link (revoke access)</button>`);
+    window._guestUrl=url;
+  }catch(e){toast(typeof e==='string'?e:'Could not create link')}
+}
+function copyGuest(){navigator.clipboard?.writeText(window._guestUrl).then(()=>toast('Link copied ✓')).catch(()=>toast('Long-press to copy'))}
+function waGuest(cname){
+  const msg=`Hi! Here is your live work dashboard for ${cname} 📊\n\nSee your deliverables progress & content calendar anytime, updated in real time:\n${window._guestUrl}\n\nNo login needed — just open the link!`;
+  window.open('https://wa.me/?text='+encodeURIComponent(msg),'_blank');
+}
+async function guestOff(cid){
+  if(!confirm('Turn off this link? The client will no longer be able to open it.'))return;
+  try{await api('/clients/'+cid+'/guest-link',{method:'DELETE'});closeModal();toast('Link revoked ✓')}catch(e){toast(e)}
+}
+
+/* ---------- REFER & EARN (owner only) ---------- */
+async function renderRefer(){
+  const m=$('#main');m.innerHTML='<div class="hsub">Loading…</div>';
+  let j;try{j=await api('/referral')}catch(e){m.innerHTML='<div class="hsub">Could not load referral info.</div>';return}
+  const shareMsg=`Hey! I use BuzzFlow to manage my agency's tasks, clients & monthly deliverables — it has honestly made my team so much more organised.\n\nUse my referral code *${j.code}* when you sign up and you get *20% OFF* your first month. I get a free month too — win-win!\n\nAsk BuzzFlow for a demo: https://wa.me/919769044811?text=${encodeURIComponent('Hi! I was referred with code '+j.code+' — I want a BuzzFlow demo.')}`;
+  m.innerHTML=`
+   <div class="topbar"><div><div class="crumb">Grow together</div>
+     <div class="h1 serif">Refer & <span class="it">earn.</span></div>
+     <div class="hsub">Know another agency drowning in WhatsApp chaos? Refer them.</div></div></div>
+   <div class="card" style="text-align:center;padding:30px 20px">
+     <div style="font-size:11px;letter-spacing:.15em;text-transform:uppercase;color:var(--mut);font-weight:700">Your referral code</div>
+     <div class="serif" style="font-size:38px;letter-spacing:.05em;margin:10px 0;color:var(--orange)">${esc(j.code)}</div>
+     <div class="hsub" style="max-width:420px;margin:0 auto 18px">They get <b>20% off</b> their first month · You get <b>1 month FREE</b> when they become a paying client.</div>
+     <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
+       <button class="btn orange" onclick="shareRef()">📤 Share on WhatsApp</button>
+       <button class="btn" onclick="copyRef('${esc(j.code)}')">Copy code</button>
+     </div>
+   </div>
+   <div class="card">
+     <div style="font-weight:700;margin-bottom:6px">How it works</div>
+     <div class="hsub" style="line-height:2">
+      1. Share your code with another agency owner.<br>
+      2. They mention it when they join BuzzFlow.<br>
+      3. Once they become a paying client, <b>1 free month</b> is added to your subscription automatically.</div>
+   </div>
+   <div class="card">
+     <div style="font-weight:700;margin-bottom:6px">Your referrals</div>
+     ${j.referrals.length?j.referrals.map(r=>`
+       <div style="display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--line);font-size:13px">
+         <div><b>${esc(r.referred_name||'New agency')}</b><div class="hsub" style="font-size:11px">${(r.created_at||'').slice(0,10)}</div></div>
+         <span style="font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:3px 10px;border-radius:20px;${r.status==='rewarded'?'background:rgba(78,155,110,.15);color:var(--sage)':'background:rgba(224,154,13,.14);color:var(--amber)'}">${r.status==='rewarded'?'✓ Rewarded':'Pending'}</span>
+       </div>`).join(''):'<div class="hsub">No referrals yet — share your code and start earning free months!</div>'}
+   </div>`;
+  window._refMsg=shareMsg;
+}
+function shareRef(){window.open('https://wa.me/?text='+encodeURIComponent(window._refMsg),'_blank')}
+function copyRef(code){navigator.clipboard?.writeText(code).then(()=>toast('Code copied ✓')).catch(()=>toast('Long-press to copy'))}
+
 async function renderSettings(){
   const m=$('#main');m.innerHTML='<div class="hsub">Loading…</div>';
   let inv={invite_code:''};
