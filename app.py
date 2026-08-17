@@ -147,8 +147,8 @@ SCHEMA = """
       id {PK}, name TEXT NOT NULL, price_m INTEGER DEFAULT 0, price_y INTEGER DEFAULT 0,
       max_members INTEGER DEFAULT 0);
     CREATE TABLE IF NOT EXISTS wpayments(
-      id {PK}, workspace_id INTEGER NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
-      amount REAL NOT NULL DEFAULT 0, note TEXT DEFAULT '', paid_on TEXT);
+      id {PK}, workspace_id INTEGER REFERENCES workspaces(id) ON DELETE CASCADE,
+      ws_label TEXT DEFAULT '', amount REAL NOT NULL DEFAULT 0, note TEXT DEFAULT '', paid_on TEXT);
     CREATE TABLE IF NOT EXISTS msessions(
       token TEXT PRIMARY KEY, created_at TEXT);
     CREATE TABLE IF NOT EXISTS msettings(
@@ -157,7 +157,7 @@ SCHEMA = """
       id {PK}, referrer_ws INTEGER NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
       referred_ws INTEGER REFERENCES workspaces(id) ON DELETE SET NULL,
       referred_name TEXT DEFAULT '', status TEXT DEFAULT 'pending',
-      reward_note TEXT DEFAULT '', created_at TEXT, rewarded_at TEXT);
+      reward_note TEXT DEFAULT '', reward_days INTEGER DEFAULT 0, created_at TEXT, rewarded_at TEXT);
 """
 
 WS_MIGRATIONS = (
@@ -170,6 +170,9 @@ WS_MIGRATIONS = (
     "ALTER TABLE plans ADD COLUMN {IFNE} price_pack INTEGER DEFAULT 0",
     "ALTER TABLE workspaces ADD COLUMN {IFNE} ref_code TEXT",
     "ALTER TABLE clients ADD COLUMN {IFNE} guest_token TEXT",
+    "ALTER TABLE wpayments ADD COLUMN {IFNE} ws_label TEXT DEFAULT ''",
+    "ALTER TABLE referrals ADD COLUMN {IFNE} reward_days INTEGER DEFAULT 0",
+    "ALTER TABLE wpayments ALTER COLUMN workspace_id DROP NOT NULL",
 )
 
 PROTECTED_OWNER_EMAIL = 'nkheradia@gmail.com'   # master's own workspace — can never be deleted
@@ -233,6 +236,7 @@ def wsid():
     return session['ws']
 
 def ws_locked(ws_id):
+    if ws_protected(ws_id): return None
     w = db().execute("SELECT wstatus, expires_on FROM workspaces WHERE id=?", (ws_id,)).fetchone()
     if not w: return "Workspace not found"
     if (w['wstatus'] or 'active') == 'suspended':
@@ -1138,6 +1142,9 @@ def master_overview():
     month = today_ist().strftime('%Y-%m')
     for w in wss:
         owner = d.execute("SELECT name,email FROM users WHERE workspace_id=? AND role='owner' LIMIT 1", (w['id'],)).fetchone()
+        if ws_protected(w['id']) and w['expires_on']:
+            d.execute("UPDATE workspaces SET expires_on=NULL WHERE id=?", (w['id'],)); d.commit()
+            w = d.execute("SELECT * FROM workspaces WHERE id=?", (w['id'],)).fetchone()
         members = d.execute("SELECT COUNT(*) n FROM users WHERE workspace_id=? AND active=1", (w['id'],)).fetchone()['n']
         clients = d.execute("SELECT COUNT(*) n FROM clients WHERE workspace_id=?", (w['id'],)).fetchone()['n']
         tasks_m = d.execute("SELECT COUNT(*) n FROM tasks WHERE workspace_id=? AND substr(created_at,1,7)=?", (w['id'], month)).fetchone()['n']
@@ -1161,11 +1168,17 @@ def master_overview():
         trial_day = None
         if (w['plan'] or '') == 'Trial' and exp:
             trial_day = max(1, min(14, 14 - (days_left if days_left is not None else 0)))
+        # referral info for this workspace
+        rby = d.execute("""SELECT w2.name FROM referrals r JOIN workspaces w2 ON w2.id=r.referrer_ws
+                           WHERE r.referred_ws=? LIMIT 1""", (w['id'],)).fetchone()
+        bonus = d.execute("SELECT COALESCE(SUM(reward_days),0) s FROM referrals WHERE referrer_ws=? AND status='rewarded'",
+                          (w['id'],)).fetchone()['s'] or 0
         out.append(dict(id=w['id'], name=w['name'], plan=w['plan'] or 'Pro',
                         expires_on=exp, days_left=days_left, status=status, notes=w['mnotes'] or '',
                         owner_name=owner['name'] if owner else '—', owner_email=owner['email'] if owner else '—',
                         owner_phone='', members=members, clients=clients, tasks_month=tasks_m,
                         tasks_week=tasks_week, last_active=last_active, trial_day=trial_day,
+                        referred_by=rby['name'] if rby else None, ref_bonus_days=bonus,
                         protected=ws_protected(w['id']), total_paid=round(paid, 2)))
     rev_month = d.execute("SELECT COALESCE(SUM(amount),0) s FROM wpayments WHERE substr(paid_on,1,7)=?", (month,)).fetchone()['s'] or 0
     plans = [dict(r) for r in d.execute("SELECT * FROM plans ORDER BY price_m").fetchall()]
@@ -1215,11 +1228,15 @@ def master_create_ws():
         db().execute("DELETE FROM workspaces WHERE id=?", (ws,)); db().commit()
         return jsonify(error="That email is already registered"), 400
     ref = int(d.get('referred_by') or 0)
+    rcode = (d.get('ref_code') or '').strip().upper()
+    if not ref and rcode:
+        rw = db().execute("SELECT id FROM workspaces WHERE UPPER(ref_code)=?", (rcode,)).fetchone()
+        if rw: ref = rw['id']
     if ref:
         db().execute("""INSERT INTO referrals(referrer_ws,referred_ws,referred_name,status,created_at)
                         VALUES(?,?,?,'pending',?)""", (ref, ws, name, now_ist().isoformat()))
         db().commit()
-    return jsonify(id=ws, invite_code=code, expires_on=exp)
+    return jsonify(id=ws, invite_code=code, expires_on=exp, referred_by=ref or None)
 
 @app.post('/api/master/workspaces/<int:wid>/extend')
 @master_required
@@ -1251,13 +1268,13 @@ def master_extend(wid):
 @master_required
 def master_payments():
     d = db()
-    rows = d.execute("""SELECT p.id, p.workspace_id, p.amount, p.note, p.paid_on, w.name AS ws_name
+    rows = d.execute("""SELECT p.id, p.workspace_id, p.ws_label, p.amount, p.note, p.paid_on, w.name AS ws_name
                         FROM wpayments p LEFT JOIN workspaces w ON w.id=p.workspace_id
                         ORDER BY p.paid_on DESC, p.id DESC""").fetchall()
     out, months = [], {}
     for r in rows:
         rec = dict(r)
-        rec['ws_name'] = rec['ws_name'] or '(deleted workspace)'
+        rec['ws_name'] = rec['ws_name'] or rec.get('ws_label') or '(deleted workspace)'
         out.append(rec)
         mk = (r['paid_on'] or '')[:7]
         months[mk] = round(months.get(mk, 0) + (r['amount'] or 0), 2)
@@ -1265,6 +1282,20 @@ def master_payments():
     total_year = round(sum(v for k, v in months.items() if k.startswith(year)), 2)
     total_all = round(sum(months.values()), 2)
     return jsonify(payments=out, month_totals=months, total_year=total_year, total_all=total_all)
+
+@app.post('/api/master/payments')
+@master_required
+def master_add_payment():
+    d = request.json or {}
+    amount = float(d.get('amount') or 0)
+    if amount <= 0: return jsonify(error="amount required"), 400
+    wid = int(d.get('workspace_id') or 0) or None
+    label = (d.get('ws_label') or '').strip()
+    if not wid and not label: return jsonify(error="pick a workspace or type a name"), 400
+    db().execute("INSERT INTO wpayments(workspace_id,ws_label,amount,note,paid_on) VALUES(?,?,?,?,?)",
+                 (wid, label, amount, d.get('note', ''), d.get('paid_on') or today_ist().isoformat()))
+    db().commit()
+    return jsonify(ok=True)
 
 @app.delete('/api/master/payments/<int:pid>')
 @master_required
@@ -1416,17 +1447,48 @@ def master_reward_referral(rid):
     d = request.json or {}
     r = db().execute("SELECT * FROM referrals WHERE id=?", (rid,)).fetchone()
     if not r: return jsonify(error="not found"), 404
-    days = int(d.get('days') or 30)
-    w = db().execute("SELECT expires_on FROM workspaces WHERE id=?", (r['referrer_ws'],)).fetchone()
-    base = today_ist()
-    if w and w['expires_on'] and date.fromisoformat(w['expires_on']) > base:
-        base = date.fromisoformat(w['expires_on'])
-    new_exp = (base + timedelta(days=days)).isoformat()
-    db().execute("UPDATE workspaces SET expires_on=? WHERE id=?", (new_exp, r['referrer_ws']))
-    db().execute("UPDATE referrals SET status='rewarded', reward_note=?, rewarded_at=? WHERE id=?",
-                 (f'+{days} days free', now_ist().isoformat(), rid))
+    # custom duration: value + unit (days/months/years); legacy: days
+    if d.get('value'):
+        value, unit = int(d['value']), (d.get('unit') or 'days')
+        if unit not in ('days', 'months', 'years'): return jsonify(error="bad unit"), 400
+        days = value * _unit_days(unit)
+        note = f'+{value} {unit} free'
+    else:
+        days = int(d.get('days') or 30)
+        note = f'+{days} days free'
+    new_exp = None
+    if not ws_protected(r['referrer_ws']):
+        w = db().execute("SELECT expires_on FROM workspaces WHERE id=?", (r['referrer_ws'],)).fetchone()
+        base = today_ist()
+        if w and w['expires_on'] and date.fromisoformat(w['expires_on']) > base:
+            base = date.fromisoformat(w['expires_on'])
+        new_exp = (base + timedelta(days=days)).isoformat()
+        db().execute("UPDATE workspaces SET expires_on=? WHERE id=?", (new_exp, r['referrer_ws']))
+    db().execute("UPDATE referrals SET status='rewarded', reward_note=?, reward_days=?, rewarded_at=? WHERE id=?",
+                 (note, days, now_ist().isoformat(), rid))
     db().commit()
     return jsonify(ok=True, new_expiry=new_exp)
+
+@app.put('/api/master/referrals/<int:rid>')
+@master_required
+def master_edit_referral(rid):
+    d = request.json or {}
+    r = db().execute("SELECT * FROM referrals WHERE id=?", (rid,)).fetchone()
+    if not r: return jsonify(error="not found"), 404
+    db().execute("""UPDATE referrals SET referrer_ws=?, referred_ws=?, referred_name=?, status=? WHERE id=?""",
+                 (int(d.get('referrer_ws') or r['referrer_ws']),
+                  d.get('referred_ws') if d.get('referred_ws') else r['referred_ws'],
+                  d.get('referred_name', r['referred_name']),
+                  d.get('status', r['status']), rid))
+    db().commit()
+    return jsonify(ok=True)
+
+@app.get('/api/master/refcode/<code>')
+@master_required
+def master_refcode(code):
+    w = db().execute("SELECT id, name FROM workspaces WHERE UPPER(ref_code)=?", (code.strip().upper(),)).fetchone()
+    if not w: return jsonify(error="Unknown referral code"), 404
+    return jsonify(id=w['id'], name=w['name'])
 
 @app.delete('/api/master/referrals/<int:rid>')
 @master_required

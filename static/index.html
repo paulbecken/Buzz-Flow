@@ -255,7 +255,7 @@ html.dark #toast{background:#EDEBF2;color:#1A1B22}
   .cal-day{min-height:56px;padding:5px 6px}
   .bottom-nav{display:flex;position:fixed;bottom:0;left:0;right:0;z-index:50;padding:8px 4px calc(8px + env(safe-area-inset-bottom));justify-content:space-around;
     background:var(--sideglass);border-top:1px solid var(--glass-brd);backdrop-filter:blur(24px) saturate(1.5);-webkit-backdrop-filter:blur(24px) saturate(1.5)}
-  .bottom-nav button{display:flex;flex-direction:column;align-items:center;gap:3px;color:var(--mut);font-size:9px;font-weight:600;padding:4px 6px;border-radius:10px}
+  .bottom-nav button{display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:3px;color:var(--mut);font-size:8.5px;font-weight:600;padding:4px 0;border-radius:10px;flex:1;min-width:0;text-align:center;white-space:nowrap;overflow:hidden}
   .bottom-nav button svg{width:19px;height:19px}
   .bottom-nav button.on{color:var(--orange)}
   .bottom-nav button.on svg{stroke:var(--orange)}
@@ -428,9 +428,10 @@ const ICONS={
 const NAV_BASE=[['dash','Dashboard'],['tasks','Tasks'],['cal','Calendar'],['updates','Updates'],['clients','Clients'],['team','Team']];
 function NAV(){const n=[...NAV_BASE];if(ME&&ME.role==='owner'){n.push(['refer','Refer & Earn']);n.push(['settings','Settings'])}return n}
 let VIEW='dash';
+const SHORT_LBL={'Dashboard':'Home','Refer & Earn':'Refer','Calendar':'Cal','Updates':'Updates','Clients':'Clients','Team':'Team','Tasks':'Tasks','Settings':'Settings'};
 function renderNav(){
   $('#nav').innerHTML=NAV().map(([k,l])=>`<button class="${VIEW===k?'on':''}" onclick="go('${k}')">${ICONS[k]}${l}</button>`).join('');
-  $('#bnav').innerHTML=NAV().map(([k,l])=>`<button class="${VIEW===k?'on':''}" onclick="go('${k}')">${ICONS[k]}${l}</button>`).join('');
+  $('#bnav').innerHTML=NAV().map(([k,l])=>`<button class="${VIEW===k?'on':''}" onclick="go('${k}')">${ICONS[k]}${SHORT_LBL[l]||l}</button>`).join('');
 }
 function go(v,arg){VIEW=v;renderNav();({dash:renderDash,tasks:renderTasks,cal:renderCal,clients:renderClients,updates:renderUpdates,team:renderTeam,settings:renderSettings,refer:renderRefer}[v])(arg)}
 
