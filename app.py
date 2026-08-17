@@ -800,15 +800,28 @@ def build_report_data():
         emp_rows.append(dict(name=e['name'], title=e['title'] or '', role=e['role'],
                              delivered=done_m, open=open_n, overdue=overdue_n,
                              services=', '.join(f"{r['n']} {r['service']}" for r in svc) or '—'))
-    # per-client progress
+    # per-client progress — ALL active clients, even without quotas
     cli_rows = []
     for c in d.execute("SELECT * FROM clients WHERE workspace_id=? AND status='active' ORDER BY name", (ws,)).fetchall():
-        for q in d.execute("SELECT service, monthly_target FROM quotas WHERE client_id=?", (c['id'],)).fetchall():
+        quotas = d.execute("SELECT service, monthly_target FROM quotas WHERE client_id=?", (c['id'],)).fetchall()
+        seen = set()
+        for q in quotas:
             done = d.execute("""SELECT COALESCE(SUM(qty),0) n FROM tasks WHERE client_id=? AND service=?
                 AND status='done' AND substr(done_at,1,7)=?""", (c['id'], q['service'], month)).fetchone()['n']
+            seen.add(q['service'].lower())
             cli_rows.append(dict(client=c['name'], service=q['service'],
                                  done=done, target=q['monthly_target'],
                                  pct=round(done*100/q['monthly_target']) if q['monthly_target'] else 0))
+        # services delivered this month that have no quota row
+        extra = d.execute("""SELECT service, SUM(qty) n FROM tasks WHERE client_id=? AND status='done'
+            AND substr(done_at,1,7)=? GROUP BY service""", (c['id'], month)).fetchall()
+        for e in extra:
+            if e['service'].lower() not in seen:
+                cli_rows.append(dict(client=c['name'], service=e['service'],
+                                     done=e['n'], target=None, pct=None))
+        if not quotas and not extra:
+            cli_rows.append(dict(client=c['name'], service='— no work recorded —',
+                                 done=None, target=None, pct=None))
     # all tasks detail
     task_rows = [dict(r) for r in d.execute("""SELECT t.title, t.service, t.qty, t.status, t.priority, t.due,
         substr(t.done_at,1,10) done_on, u.name assignee, c.name client

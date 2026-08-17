@@ -981,153 +981,187 @@ async function downloadReportPdf(){
     const r=await api('/report/work');
     const {jsPDF}=window.jspdf;
     const doc=new jsPDF('p','pt','a4');
-    const W=595,M=40;
-    const ORANGE=[255,90,31],INK=[34,37,44],MUT=[130,135,145],LINE=[230,226,218],
-          GREEN=[46,139,87],AMBER=[217,147,13],RED=[214,69,69],CREAM=[248,245,239];
+    const W=595,M=36;
+    const ORANGE=[255,90,31],INK=[34,37,44],MUT=[120,125,135],LINE=[222,218,210],
+          GREEN=[46,139,87],RED=[214,69,69],CREAM=[248,245,239],ZEBRA=[250,248,244];
     let y=0;
-    const npage=(need)=>{if(y+need>800){doc.addPage();y=50}};
-    /* ---------- header ---------- */
-    doc.setFillColor(...ORANGE);doc.rect(0,0,W,56,'F');
-    doc.setFont('helvetica','bold');doc.setFontSize(17);doc.setTextColor(255,255,255);
-    doc.text(r.company,M,26);
-    doc.setFont('helvetica','normal');doc.setFontSize(10);
-    doc.text('Monthly Work Report  ·  '+r.month,M,43);
-    doc.setFontSize(8);
-    doc.text('Generated '+r.generated,W-M,43,{align:'right'});
-    y=84;
-    /* ---------- 1. at a glance ---------- */
+    const npage=(need)=>{if(y+need>802){doc.addPage();y=44}};
+    /* ===== header ===== */
+    doc.setFillColor(...ORANGE);doc.rect(0,0,W,50,'F');
+    doc.setFont('helvetica','bold');doc.setFontSize(15);doc.setTextColor(255,255,255);
+    doc.text(r.company+' — Monthly Work Report',M,22);
+    doc.setFont('helvetica','normal');doc.setFontSize(9);
+    doc.text(r.month+'   ·   Generated '+r.generated,M,38);
+    y=66;
+    /* ===== summary strip (compact, labelled clearly) ===== */
     const T=r.totals;
-    doc.setFont('helvetica','bold');doc.setFontSize(13);doc.setTextColor(...INK);
-    doc.text('This month at a glance',M,y);y+=12;
-    doc.setFillColor(...CREAM);doc.roundedRect(M,y,W-2*M,74,9,9,'F');
-    doc.setFont('helvetica','bold');doc.setFontSize(34);doc.setTextColor(...ORANGE);
-    const heroNum=String(T.delivered_month);
-    doc.text(heroNum,M+22,y+47);
-    const heroW=doc.getTextWidth(heroNum);
-    doc.setFont('helvetica','bold');doc.setFontSize(10);doc.setTextColor(...INK);
-    doc.text('deliverables',M+22+heroW+14,y+38);
-    doc.setFont('helvetica','normal');doc.setTextColor(...MUT);
-    doc.text('completed this month',M+22+heroW+14,y+51);
-    const dotLine=(dy,color,text)=>{
-      doc.setFillColor(...color);doc.circle(W-M-215,y+dy-3,3.4,'F');
-      doc.setFont('helvetica','normal');doc.setFontSize(10);doc.setTextColor(...INK);
-      doc.text(text,W-M-204,y+dy);
+    const cells=[['Total tasks',T.total_tasks,INK],['Completed',T.done,GREEN],
+                 ['Still open',T.open,T.open>0?ORANGE:GREEN],['Overdue',T.overdue,T.overdue>0?RED:GREEN],
+                 ['Delivered this month',T.delivered_month,ORANGE]];
+    const cw0=(W-2*M-4*6)/5;
+    cells.forEach((c,i)=>{
+      const bx=M+i*(cw0+6);
+      doc.setFillColor(...CREAM);doc.roundedRect(bx,y,cw0,40,5,5,'F');
+      doc.setFont('helvetica','bold');doc.setFontSize(14);doc.setTextColor(...c[2]);
+      doc.text(String(c[1]),bx+cw0/2,y+18,{align:'center'});
+      doc.setFont('helvetica','normal');doc.setFontSize(6.6);doc.setTextColor(...MUT);
+      doc.text(c[0].toUpperCase(),bx+cw0/2,y+31,{align:'center'});
+    });
+    y+=58;
+    /* helper: section banner (highlighted) */
+    const banner=(txt)=>{
+      npage(30);
+      doc.setFillColor(...ORANGE);doc.roundedRect(M,y,W-2*M,20,4,4,'F');
+      doc.setFont('helvetica','bold');doc.setFontSize(10);doc.setTextColor(255,255,255);
+      doc.text(txt.toUpperCase(),M+10,y+14);
+      y+=28;
     };
-    dotLine(24,GREEN,T.done+' of '+T.total_tasks+' tasks done');
-    dotLine(42,T.open>0?AMBER:GREEN,T.open+' task'+(T.open===1?'':'s')+' still open');
-    dotLine(60,T.overdue>0?RED:GREEN,T.overdue+' past deadline');
-    y+=94;
-    /* ---------- 2. monthly work — client wise, bars ---------- */
-    doc.setFont('helvetica','bold');doc.setFontSize(13);doc.setTextColor(...INK);
-    doc.text('Monthly work — client wise',M,y);y+=8;
+    /* ===== 1. MONTHLY WORK — grid, client left, services right, mini bar ===== */
+    banner('Monthly Work — Client Wise');
+    // table head
+    const c1=M, c2=M+120, c3=M+250, c4=M+300, c5=M+352, c6=W-M-52;
+    doc.setFillColor(60,64,72);doc.rect(M,y,W-2*M,16,'F');
+    doc.setFont('helvetica','bold');doc.setFontSize(7.5);doc.setTextColor(255,255,255);
+    doc.text('CLIENT',c1+6,y+11);doc.text('SERVICE',c2+4,y+11);
+    doc.text('DONE',c3+4,y+11);doc.text('TARGET',c4+4,y+11);
+    doc.text('PROGRESS',c5+4,y+11);doc.text('STATUS',c6+4,y+11);
+    y+=16;
     const byClient={};
     (r.clients||[]).forEach(c=>{(byClient[c.client]=byClient[c.client]||[]).push(c)});
-    const names=Object.keys(byClient);
-    if(!names.length){doc.setFont('helvetica','normal');doc.setFontSize(10);doc.setTextColor(...MUT);
-      y+=14;doc.text('No client quotas set this month.',M,y);y+=20;}
-    names.forEach(cn=>{
+    let zi=0;
+    Object.keys(byClient).forEach(cn=>{
       const rows=byClient[cn];
-      npage(26+rows.length*22);
-      y+=18;
-      doc.setFont('helvetica','bold');doc.setFontSize(11);doc.setTextColor(...INK);
-      doc.text(cn,M,y);
-      y+=6;
-      rows.forEach(q=>{
-        y+=18;
-        const frac=q.target>0?Math.min(1,q.done/q.target):0;
-        const complete=q.done>=q.target&&q.target>0;
-        doc.setFont('helvetica','normal');doc.setFontSize(9.5);doc.setTextColor(...INK);
-        doc.text(q.service,M+14,y);
-        const bx=M+150,bw=W-M-150-M-70;
-        doc.setFillColor(236,232,224);doc.roundedRect(bx,y-8,bw,9,4.5,4.5,'F');
-        if(frac>0){
-          doc.setFillColor(...(complete?GREEN:ORANGE));
-          doc.roundedRect(bx,y-8,Math.max(9,bw*frac),9,4.5,4.5,'F');
+      rows.forEach((q,qi)=>{
+        npage(15);
+        if(zi%2)doc.setFillColor(...ZEBRA),doc.rect(M,y,W-2*M,14,'F');
+        zi++;
+        // client name only on first row of group — highlighted
+        if(qi===0){
+          doc.setFont('helvetica','bold');doc.setFontSize(8.5);doc.setTextColor(...ORANGE);
+          doc.text(doc.splitTextToSize(cn,110)[0],c1+6,y+10);
         }
-        doc.setFont('helvetica','bold');doc.setFontSize(9.5);
-        doc.setTextColor(...(complete?GREEN:INK));
-        doc.text(q.done+' / '+q.target,W-M,y,{align:'right'});
+        doc.setFont('helvetica','normal');doc.setFontSize(8);doc.setTextColor(...INK);
+        doc.text(doc.splitTextToSize(q.service,125)[0],c2+4,y+10);
+        if(q.done!==null&&q.done!==undefined)doc.text(String(q.done),c3+4,y+10);
+        doc.text(q.target?String(q.target):'—',c4+4,y+10);
+        // mini progress bar
+        if(q.target){
+          const bw=100,frac=Math.min(1,q.done/q.target);
+          doc.setFillColor(232,228,220);doc.rect(c5+4,y+3.5,bw,7,'F');
+          doc.setFillColor(...(q.done>=q.target?GREEN:ORANGE));
+          if(frac>0)doc.rect(c5+4,y+3.5,Math.max(3,bw*frac),7,'F');
+          doc.setFont('helvetica','bold');doc.setFontSize(7.5);
+          doc.setTextColor(...(q.done>=q.target?GREEN:INK));
+          doc.text((q.pct??0)+'%',c6+4,y+10);
+        }else if(q.done!==null&&q.done!==undefined){
+          doc.setFont('helvetica','italic');doc.setFontSize(7.5);doc.setTextColor(...MUT);
+          doc.text('no target set',c5+4,y+10);
+        }else{
+          doc.setFont('helvetica','italic');doc.setFontSize(7.5);doc.setTextColor(...MUT);
+          doc.text('no work recorded',c5+4,y+10);
+        }
+        doc.setDrawColor(...LINE);doc.setLineWidth(0.4);doc.line(M,y+14,W-M,y+14);
+        y+=14;
       });
-      y+=6;
-      doc.setDrawColor(...LINE);doc.setLineWidth(0.6);doc.line(M,y+4,W-M,y+4);
+      // slightly stronger divider between clients
+      doc.setDrawColor(200,196,188);doc.setLineWidth(0.8);doc.line(M,y,W-M,y);
     });
-    y+=26;
-    /* ---------- 3. pending work — who is doing what ---------- */
-    npage(60);
-    doc.setFont('helvetica','bold');doc.setFontSize(13);doc.setTextColor(...INK);
-    doc.text('Pending work — who is doing what',M,y);y+=8;
+    y+=16;
+    /* ===== 2. PENDING WORK — excel grid ===== */
+    banner('Pending Work — To Be Done');
     const pend=(r.tasks||[]).filter(t=>t.status!=='done');
     if(!pend.length){
-      y+=20;
-      doc.setFillColor(232,244,236);doc.roundedRect(M,y-12,W-2*M,30,7,7,'F');
-      doc.setFont('helvetica','bold');doc.setFontSize(11);doc.setTextColor(...GREEN);
-      doc.text('All caught up — no pending tasks!',M+16,y+7);
-      y+=36;
+      npage(24);
+      doc.setFont('helvetica','bold');doc.setFontSize(9);doc.setTextColor(...GREEN);
+      doc.text('All caught up — no pending tasks.',M+4,y+4);y+=20;
     }else{
-      const byEmp={};
-      pend.forEach(t=>{const k=t.assignee||'Unassigned';(byEmp[k]=byEmp[k]||[]).push(t)});
-      Object.keys(byEmp).sort().forEach(emp=>{
-        const list=byEmp[emp];
-        npage(24+list.length*15);
-        y+=18;
-        doc.setFont('helvetica','bold');doc.setFontSize(10.5);
-        doc.setTextColor(...(emp==='Unassigned'?RED:INK));
-        doc.text(emp+'  ('+list.length+' pending)',M,y);
-        doc.setFont('helvetica','normal');doc.setFontSize(9);
-        list.forEach(t=>{
-          y+=14;npage(14);
-          const today=new Date().toISOString().slice(0,10);
-          const over=t.due&&t.due<today;
-          doc.setTextColor(...(over?RED:MUT));
-          let ln='•  '+t.title+(t.qty>1?' ×'+t.qty:'')+(t.client?'  —  '+t.client:'')+(t.due?'  ·  due '+t.due:'');
-          if(over)ln+='  (OVERDUE)';
-          doc.text(doc.splitTextToSize(ln,W-2*M-14),M+12,y);
-        });
-        y+=4;
+      const p1=M,p2=M+145,p3=M+245,p4=M+345,p5=M+405,p6=W-M-28;
+      doc.setFillColor(60,64,72);doc.rect(M,y,W-2*M,16,'F');
+      doc.setFont('helvetica','bold');doc.setFontSize(7.5);doc.setTextColor(255,255,255);
+      doc.text('TASK',p1+6,y+11);doc.text('CLIENT',p2+4,y+11);doc.text('ASSIGNED TO',p3+4,y+11);
+      doc.text('STATUS',p4+4,y+11);doc.text('DUE DATE',p5+4,y+11);doc.text('QTY',p6+4,y+11);
+      y+=16;
+      const today=new Date().toISOString().slice(0,10);
+      pend.forEach((t,i)=>{
+        npage(15);
+        if(i%2)doc.setFillColor(...ZEBRA),doc.rect(M,y,W-2*M,14,'F');
+        const over=t.due&&t.due<today;
+        doc.setFont('helvetica','normal');doc.setFontSize(8);doc.setTextColor(...INK);
+        doc.text(doc.splitTextToSize(t.title,140)[0],p1+6,y+10);
+        doc.text(doc.splitTextToSize(t.client||'—',100)[0],p2+4,y+10);
+        doc.setFont('helvetica','bold');doc.setTextColor(...(t.assignee?INK:RED));
+        doc.text(doc.splitTextToSize(t.assignee||'UNASSIGNED',100)[0],p3+4,y+10);
+        doc.setFont('helvetica','normal');doc.setTextColor(...INK);
+        doc.text(t.status,p4+4,y+10);
+        doc.setTextColor(...(over?RED:INK));
+        doc.text((t.due||'—')+(over?'  !':''),p5+4,y+10);
+        doc.setTextColor(...INK);
+        doc.text(String(t.qty||1),p6+4,y+10);
+        doc.setDrawColor(...LINE);doc.setLineWidth(0.4);doc.line(M,y+14,W-M,y+14);
+        y+=14;
       });
-      y+=10;
     }
-    /* ---------- 4. employee performance circles ---------- */
-    npage(150);
-    y+=14;
-    doc.setFont('helvetica','bold');doc.setFontSize(13);doc.setTextColor(...INK);
-    doc.text('Employee performance — share of monthly work',M,y);y+=10;
-    const emps=(r.employees||[]).filter(e=>e.role!=='owner'||e.delivered>0);
+    y+=16;
+    /* ===== 3. EMPLOYEE PERFORMANCE — grid + share circles ===== */
+    banner('Employee Performance — This Month');
+    const emps=(r.employees||[]);
+    const e1=M,e2=M+130,e3=M+230,e4=M+285,e5=M+335,e6=M+385;
+    doc.setFillColor(60,64,72);doc.rect(M,y,W-2*M,16,'F');
+    doc.setFont('helvetica','bold');doc.setFontSize(7.5);doc.setTextColor(255,255,255);
+    doc.text('EMPLOYEE',e1+6,y+11);doc.text('ROLE',e2+4,y+11);doc.text('DELIVERED',e3+4,y+11);
+    doc.text('OPEN',e4+4,y+11);doc.text('OVERDUE',e5+4,y+11);doc.text('WORK BREAKDOWN',e6+4,y+11);
+    y+=16;
     const totDel=Math.max(1,T.delivered_month);
-    const perRow=4, cw=(W-2*M)/perRow, rad=26;
-    const ring=(cx,cy,frac,color)=>{
-      doc.setDrawColor(236,232,224);doc.setLineWidth(7);doc.circle(cx,cy,rad,'S');
-      if(frac<=0)return;
-      doc.setDrawColor(...color);doc.setLineWidth(7);
-      const steps=Math.max(3,Math.round(90*frac));
-      let prev=null;
-      for(let i=0;i<=steps;i++){
-        const a=-Math.PI/2+2*Math.PI*Math.min(1,frac)*i/steps;
-        const px=cx+rad*Math.cos(a),py=cy+rad*Math.sin(a);
-        if(prev)doc.line(prev[0],prev[1],px,py);
-        prev=[px,py];
+    emps.forEach((e,i)=>{
+      npage(15);
+      if(i%2)doc.setFillColor(...ZEBRA),doc.rect(M,y,W-2*M,14,'F');
+      doc.setFont('helvetica','bold');doc.setFontSize(8);doc.setTextColor(...INK);
+      doc.text(doc.splitTextToSize(e.name,120)[0],e1+6,y+10);
+      doc.setFont('helvetica','normal');
+      doc.text(doc.splitTextToSize(e.title||e.role,95)[0],e2+4,y+10);
+      doc.setTextColor(...GREEN);doc.text(String(e.delivered),e3+4,y+10);
+      doc.setTextColor(...INK);doc.text(String(e.open),e4+4,y+10);
+      doc.setTextColor(...(e.overdue>0?RED:INK));doc.text(String(e.overdue),e5+4,y+10);
+      doc.setTextColor(...MUT);doc.setFontSize(7.2);
+      doc.text(doc.splitTextToSize(e.services||'—',W-M-e6-8)[0],e6+4,y+10);
+      doc.setDrawColor(...LINE);doc.setLineWidth(0.4);doc.line(M,y+14,W-M,y+14);
+      y+=14;
+    });
+    /* efficiency circles below the grid */
+    const active=emps.filter(e=>e.delivered>0);
+    if(active.length){
+      y+=14;npage(110);
+      doc.setFont('helvetica','bold');doc.setFontSize(9);doc.setTextColor(...INK);
+      doc.text('Share of total monthly work ('+T.delivered_month+' deliverables):',M,y);y+=8;
+      const perRow=5, cw=(W-2*M)/perRow, rad=21;
+      const ring=(cx,cy,frac,color)=>{
+        doc.setDrawColor(232,228,220);doc.setLineWidth(5.5);doc.circle(cx,cy,rad,'S');
+        if(frac<=0)return;
+        doc.setDrawColor(...color);doc.setLineWidth(5.5);
+        const steps=Math.max(3,Math.round(80*frac));let prev=null;
+        for(let i2=0;i2<=steps;i2++){
+          const a=-Math.PI/2+2*Math.PI*Math.min(1,frac)*i2/steps;
+          const px=cx+rad*Math.cos(a),py=cy+rad*Math.sin(a);
+          if(prev)doc.line(prev[0],prev[1],px,py);
+          prev=[px,py];
+        }
+      };
+      for(let i=0;i<active.length;i+=perRow){
+        npage(92);
+        active.slice(i,i+perRow).forEach((e,j)=>{
+          const cx=M+cw*j+cw/2, cy=y+34;
+          const frac=e.delivered/totDel, pct=Math.round(frac*100);
+          ring(cx,cy,frac,pct>=40?GREEN:ORANGE);
+          doc.setFont('helvetica','bold');doc.setFontSize(10);doc.setTextColor(...INK);
+          doc.text(pct+'%',cx,cy+3.5,{align:'center'});
+          doc.setFontSize(7.5);
+          doc.text(doc.splitTextToSize(e.name,cw-8)[0],cx,cy+rad+12,{align:'center'});
+        });
+        y+=92;
       }
-    };
-    for(let i=0;i<emps.length;i+=perRow){
-      npage(120);
-      const row=emps.slice(i,i+perRow);
-      row.forEach((e,j)=>{
-        const cx=M+cw*j+cw/2, cy=y+44;
-        const pct=Math.round(e.delivered*100/totDel);
-        ring(cx,cy,e.delivered/totDel,pct>=50?GREEN:(pct>0?ORANGE:MUT));
-        doc.setFont('helvetica','bold');doc.setFontSize(13);doc.setTextColor(...INK);
-        doc.text(pct+'%',cx,cy+4,{align:'center'});
-        doc.setFontSize(9.5);
-        doc.text(doc.splitTextToSize(e.name,cw-10),cx,cy+rad+16,{align:'center'});
-        doc.setFont('helvetica','normal');doc.setFontSize(8);doc.setTextColor(...MUT);
-        doc.text(e.delivered+' delivered · '+e.open+' open',cx,cy+rad+28,{align:'center'});
-      });
-      y+=118;
     }
-    if(!emps.length){doc.setFont('helvetica','normal');doc.setFontSize(10);doc.setTextColor(...MUT);
-      y+=16;doc.text('No team members yet.',M,y)}
-    /* ---------- footer ---------- */
-    doc.setFontSize(8);doc.setTextColor(...MUT);
+    /* footer */
+    doc.setFont('helvetica','normal');doc.setFontSize(7.5);doc.setTextColor(...MUT);
     doc.text('Generated with BuzzFlow — Agency OS',M,812);
     const ab=doc.output('arraybuffer');const bytes=new Uint8Array(ab);
     let bin='';const CH=0x8000;
