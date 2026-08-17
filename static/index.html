@@ -354,7 +354,7 @@ const esc=s=>(s??'').toString().replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','
 const inr=n=>'₹'+Number(n||0).toLocaleString('en-IN');
 const plural=s=>s.endsWith('y')?s.slice(0,-1)+'ies':s+'s';
 const initials=n=>(n||'?').split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase();
-const roleLabel=r=>r==='admin'?'Social Media Manager':r==='owner'?'Owner':'Employee';
+const roleLabel=r=>r==='admin'?'Manager':r==='owner'?'Owner':'Employee';
 
 /* theme */
 function applyTheme(){document.documentElement.classList.toggle('dark',localStorage.getItem('bf_theme')==='dark')}
@@ -911,7 +911,7 @@ function memberModal(id){
    :`<label>Reset password <span style="text-transform:none;font-weight:400">(leave blank to keep)</span></label><input id="mPass" type="password">
    <label>Status</label><select id="mActive"><option value="1" ${u.active?'selected':''}>Active</option><option value="0" ${u.active?'':'selected'}>Inactive</option></select>`}
    <button class="btn orange full" onclick="saveMember(${id||'null'})">${id?'Save changes':'Create login'}</button>
-   ${id&&ME.role==='owner'&&u.role==='employee'?`<button class="btn ghost full" style="margin-top:10px" onclick="setRole(${id},'admin')">⬆ Promote to Social Media Manager</button>`:''}
+   ${id&&ME.role==='owner'&&u.role==='employee'?`<button class="btn ghost full" style="margin-top:10px" onclick="setRole(${id},'admin')">⬆ Promote to Manager</button>`:''}
    ${id&&ME.role==='owner'&&u.role==='admin'?`<button class="btn ghost full" style="margin-top:10px" onclick="setRole(${id},'employee')">⬇ Change to Employee</button>`:''}
    ${canDelete?`<button class="danger" onclick="delMember(${id})">Delete this member permanently</button>`:''}`);
 }
@@ -929,7 +929,7 @@ async function saveMember(id){
   }catch(e){toast(e)}
 }
 async function setRole(id,role){
-  const msg=role==='admin'?'Promote this member to Social Media Manager?':'Change this manager back to Employee?';
+  const msg=role==='admin'?'Promote this member to Manager?':'Change this manager back to Employee?';
   if(!confirm(msg))return;
   try{await api('/team/'+id+'/role',{method:'PUT',body:JSON.stringify({role})});
     closeModal();toast(role==='admin'?'Promoted ✓ (they must sign in again)':'Changed to Employee ✓');renderTeam()}
@@ -1264,7 +1264,7 @@ async function renderSettings(){
    </div>
 
    <div class="sec-t">👑 Ownership</div>
-   <div class="card"><div class="hsub">You (<b>${esc(ME.name)}</b>) are the one and only Owner of this workspace. The Owner role can never be taken by anyone else — new members always join as Employees, and only you can promote them to Social Media Manager from the Team section.</div></div>`;
+   <div class="card"><div class="hsub">You (<b>${esc(ME.name)}</b>) are the one and only Owner of this workspace. The Owner role can never be taken by anyone else — new members always join as Employees, and only you can promote them to Manager from the Team section.</div></div>`;
   drawInviteQR(inv);
   loadServiceChips();
 }

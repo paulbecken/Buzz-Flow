@@ -11,6 +11,7 @@
   --orange:#FF5A1F; --orange2:#FF8A5C; --ink:#E8EAF0; --mut:#8A90A0; --line:rgba(255,255,255,.09);
   --bg:#101318; --card:#181C24; --card2:#1F242E;
   --green:#3DBB78; --amber:#E0A030; --red:#E05252; --purple:#8A6FC8; --blue:#4A90D9;
+  --sbw:212px;
 }
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:'Poppins',sans-serif;background:var(--bg);color:var(--ink);font-size:14px;-webkit-font-smoothing:antialiased;min-height:100vh}
@@ -33,16 +34,30 @@ label{font-size:10.5px;font-weight:600;letter-spacing:.08em;text-transform:upper
 .crown{width:46px;height:46px;border-radius:14px;background:linear-gradient(135deg,var(--orange),var(--orange2));display:flex;align-items:center;justify-content:center;font-size:22px}
 .err{color:var(--red);font-size:12.5px;margin-top:10px;display:none}
 
-#panel{display:none;max-width:1280px;margin:0 auto;padding:26px 22px 80px}
-.tophead{display:flex;justify-content:space-between;align-items:center;margin-bottom:22px;flex-wrap:wrap;gap:10px}
-.tophead .t .crumb{font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--orange);font-weight:700}
-.tophead .t h1{font-size:26px}
-.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:11px;margin-bottom:22px}
-.stat{background:var(--card);border:1px solid var(--line);border-radius:15px;padding:14px 16px}
+/* ---- shell with sidebar ---- */
+#shell{display:none}
+#sidebar{position:fixed;left:0;top:0;bottom:0;width:var(--sbw);background:var(--card);border-right:1px solid var(--line);padding:22px 14px;z-index:40;display:flex;flex-direction:column}
+.sb-brand{padding:0 8px 18px;border-bottom:1px solid var(--line);margin-bottom:14px}
+.sb-brand .crumb{font-size:9.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--orange);font-weight:700}
+.sb-brand h1{font-size:21px}
+.nav-it{display:flex;align-items:center;gap:11px;width:100%;text-align:left;padding:11px 12px;border-radius:11px;font-size:13.5px;font-weight:500;color:var(--mut);margin-bottom:3px;transition:.15s}
+.nav-it:hover{background:var(--card2);color:var(--ink)}
+.nav-it.on{background:rgba(255,90,31,.13);color:var(--orange);font-weight:600}
+.nav-it .ic{font-size:16px;width:20px;text-align:center}
+.sb-foot{margin-top:auto}
+#main{margin-left:var(--sbw);padding:26px 26px 90px;max-width:1180px}
+.tophead{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:10px}
+.tophead h1{font-size:24px}
+.page{display:none}.page.on{display:block}
+
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:11px;margin-bottom:22px}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:15px;padding:14px 16px;transition:.15s}
+.stat.click{cursor:pointer}
+.stat.click:hover{border-color:var(--orange)}
 .stat .v{font-family:'DM Serif Display',serif;font-size:24px}
 .stat .l{font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--mut);margin-top:4px}
 
-.sec{font-size:15px;font-weight:700;margin:24px 0 12px;display:flex;justify-content:space-between;align-items:center}
+.sec{font-size:15px;font-weight:700;margin:22px 0 12px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px}
 .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px 18px;margin-bottom:12px}
 
 /* workspace table */
@@ -59,13 +74,24 @@ label{font-size:10.5px;font-weight:600;letter-spacing:.08em;text-transform:upper
 .badge.expired{background:rgba(224,82,82,.16);color:var(--red)}
 .badge.suspended{background:rgba(224,82,82,.3);color:#fff}
 .acts{display:flex;gap:5px;flex-wrap:wrap}
+.fchip{font-size:11px;font-weight:600;padding:6px 13px;border-radius:20px;background:var(--card2);border:1.5px solid var(--line);color:var(--mut)}
+.fchip.on{border-color:var(--orange);color:var(--orange);background:rgba(255,90,31,.1)}
+.trialbar{height:4px;border-radius:4px;background:var(--card2);margin-top:5px;overflow:hidden;width:90px}
+.trialbar i{display:block;height:100%;background:var(--blue)}
 
 /* plans */
-.plangrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:11px}
+.plangrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:11px}
 .plan{background:var(--card2);border:1px solid var(--line);border-radius:14px;padding:14px}
 .plan .nm{font-weight:700;font-size:14px;color:var(--orange)}
 .plan .pr{font-family:'DM Serif Display',serif;font-size:19px;margin-top:4px}
 .plan .mm{font-size:11px;color:var(--mut);margin-top:2px}
+.pkg{margin-top:8px;font-size:11px;background:rgba(138,111,200,.14);color:var(--purple);border-radius:8px;padding:5px 9px;display:inline-block;font-weight:600}
+
+/* payments */
+.paytot{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:11px;margin-bottom:18px}
+.mgroup{font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--orange);margin:18px 0 8px;display:flex;justify-content:space-between}
+.payrow{display:flex;justify-content:space-between;align-items:center;padding:11px 4px;border-bottom:1px solid var(--line);font-size:13px;gap:10px}
+.payrow .amt{font-weight:700;color:var(--green);white-space:nowrap}
 
 .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:60;display:none;align-items:center;justify-content:center;padding:16px}
 .modal-bg.show{display:flex}
@@ -76,10 +102,17 @@ label{font-size:10.5px;font-weight:600;letter-spacing:.08em;text-transform:upper
 .danger{color:var(--red);font-size:12px;font-weight:600;margin-top:12px}
 .credbox{background:var(--card2);border:1.5px dashed var(--orange);border-radius:12px;padding:14px;margin-top:14px;font-size:13px;line-height:1.8}
 .credbox b{color:var(--orange)}
+.protected{font-size:11px;color:var(--purple);font-weight:600;margin-top:12px}
 
 #toast{position:fixed;bottom:30px;left:50%;transform:translateX(-50%);background:#fff;color:#111;padding:11px 22px;border-radius:30px;font-size:13px;z-index:80;opacity:0;transition:.25s;pointer-events:none;max-width:90vw;text-align:center}
 #toast.show{opacity:1}
-@media(max-width:800px){
+
+@media(max-width:860px){
+  #sidebar{top:auto;bottom:0;left:0;right:0;width:100%;height:62px;flex-direction:row;padding:6px 8px;border-right:none;border-top:1px solid var(--line);align-items:center;justify-content:space-around}
+  .sb-brand,.sb-foot{display:none}
+  .nav-it{flex-direction:column;gap:2px;padding:6px 8px;font-size:9px;margin:0;flex:1}
+  .nav-it .ic{font-size:18px}
+  #main{margin-left:0;padding:18px 14px 110px}
   .wst thead{display:none}
   .wst tr{display:block;border:1px solid var(--line);border-radius:12px;margin-bottom:10px;padding:8px}
   .wst td{display:block;border:none;padding:5px 8px}
@@ -100,20 +133,81 @@ label{font-size:10.5px;font-weight:600;letter-spacing:.08em;text-transform:upper
   </div>
 </div>
 
-<div id="panel">
-  <div class="tophead">
-    <div class="t"><div class="crumb">BuzzFlow Control Room</div><h1 class="serif">Master <span style="color:var(--orange);font-style:italic">panel.</span></h1></div>
-    <div style="display:flex;gap:8px">
-      <button class="btn" onclick="createWsModal()">＋ Create Workspace</button>
-      <button class="btn ghost" onclick="mLogout()">Lock panel</button>
+<div id="shell">
+  <div id="sidebar">
+    <div class="sb-brand">
+      <div class="crumb">BuzzFlow</div>
+      <h1 class="serif">Control <span style="color:var(--orange);font-style:italic">room.</span></h1>
+    </div>
+    <button class="nav-it on" data-p="dash" onclick="go('dash')"><span class="ic">📊</span>Dashboard</button>
+    <button class="nav-it" data-p="ws" onclick="go('ws')"><span class="ic">🏢</span>Workspaces</button>
+    <button class="nav-it" data-p="pay" onclick="go('pay')"><span class="ic">💰</span>Payments</button>
+    <button class="nav-it" data-p="plans" onclick="go('plans')"><span class="ic">📦</span>Plans</button>
+    <button class="nav-it" data-p="set" onclick="go('set')"><span class="ic">⚙️</span>Settings</button>
+    <div class="sb-foot">
+      <button class="nav-it" onclick="mLogout()"><span class="ic">🔒</span>Lock panel</button>
     </div>
   </div>
-  <div class="stats" id="stats"></div>
-  <div class="sec">🏢 Workspaces <span style="font-size:11px;color:var(--mut);font-weight:400">tap a row's buttons to manage</span></div>
-  <div class="card" style="overflow-x:auto"><table class="wst" id="wsTable"></table></div>
-  <div class="sec">💳 Plans <span style="font-size:11px;color:var(--mut);font-weight:400">fully editable — your pricing, your rules</span>
-    <button class="btn sm ghost" onclick="addPlanModal()">＋ Add plan</button></div>
-  <div class="plangrid" id="planGrid"></div>
+
+  <div id="main">
+    <!-- DASHBOARD -->
+    <div class="page on" id="pg-dash">
+      <div class="tophead"><h1 class="serif">Dashboard</h1>
+        <button class="btn" onclick="createWsModal()">＋ Create Workspace</button></div>
+      <div class="stats" id="stats"></div>
+      <div class="sec">⚠️ Needs your attention</div>
+      <div id="attention"></div>
+    </div>
+
+    <!-- WORKSPACES -->
+    <div class="page" id="pg-ws">
+      <div class="tophead"><h1 class="serif">Workspaces</h1>
+        <button class="btn" onclick="createWsModal()">＋ Create Workspace</button></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;align-items:center">
+        <input id="wsSearch" placeholder="🔍 Search workspace / owner…" style="max-width:260px" oninput="renderWs()">
+        <button class="fchip on" data-f="all" onclick="setFilter('all')">All</button>
+        <button class="fchip" data-f="active" onclick="setFilter('active')">Active</button>
+        <button class="fchip" data-f="trial" onclick="setFilter('trial')">Trial</button>
+        <button class="fchip" data-f="expiring" onclick="setFilter('expiring')">Expiring</button>
+        <button class="fchip" data-f="expired" onclick="setFilter('expired')">Expired/Susp.</button>
+      </div>
+      <div class="card" style="overflow-x:auto"><table class="wst" id="wsTable"></table></div>
+    </div>
+
+    <!-- PAYMENTS -->
+    <div class="page" id="pg-pay">
+      <div class="tophead"><h1 class="serif">Payments</h1></div>
+      <div class="paytot" id="payTotals"></div>
+      <div class="card" id="payList"></div>
+    </div>
+
+    <!-- PLANS -->
+    <div class="page" id="pg-plans">
+      <div class="tophead"><h1 class="serif">Plans &amp; Packages</h1>
+        <button class="btn" onclick="addPlanModal()">＋ Add plan</button></div>
+      <div style="color:var(--mut);font-size:12px;margin-bottom:14px">Fully editable — monthly &amp; yearly pricing, plus optional <b style="color:var(--purple)">custom packages</b> (any number of days / months / years at your own price).</div>
+      <div class="plangrid" id="planGrid"></div>
+    </div>
+
+    <!-- SETTINGS -->
+    <div class="page" id="pg-set">
+      <div class="tophead"><h1 class="serif">Settings</h1></div>
+      <div class="card">
+        <div style="font-weight:700;margin-bottom:4px">📤 WhatsApp renewal reminder template</div>
+        <div style="color:var(--mut);font-size:12px">Used by the "Remind on WhatsApp" button. You can use <b>{name}</b>, <b>{plan}</b>, <b>{expiry}</b>, <b>{price}</b> — they get replaced automatically.</div>
+        <textarea id="waTpl" rows="6" style="margin-top:10px"></textarea>
+        <button class="btn" style="margin-top:12px" onclick="saveSettings()">Save template</button>
+      </div>
+      <div class="card">
+        <div style="font-weight:700;margin-bottom:4px">🔐 Master password</div>
+        <div style="color:var(--mut);font-size:12.5px">Changed from the Render dashboard → Buzz-Flow → Environment → <b>MASTER_PASSWORD</b>. It's kept outside the app on purpose, so even a database leak can't expose it.</div>
+      </div>
+      <div class="card">
+        <div style="font-weight:700;margin-bottom:4px">💳 Razorpay</div>
+        <div style="color:var(--mut);font-size:12.5px">Coming soon — once you buy the Razorpay gateway, payment links will be generated right from the Extend screen.</div>
+      </div>
+    </div>
+  </div>
 </div>
 
 <div class="modal-bg" id="modalBg" onclick="if(event.target===this)closeModal()"><div class="modal" id="modal"></div></div>
@@ -121,11 +215,18 @@ label{font-size:10.5px;font-weight:600;letter-spacing:.08em;text-transform:upper
 
 <script>
 let MT=sessionStorage.getItem('bf_master')||'';
-let DATA=null;
+let DATA=null,PAY=null,SETTINGS={},FILTER='all';
+const DEF_WA_TPL='Hi {name}! 👋\n\nYour BuzzFlow subscription ({plan} plan) is expiring on {expiry}.\n\nRenew now to keep your team running without interruption — {price}.\n\nReply here and I\'ll activate it right away! 🚀\n— Buzz Media Fame';
 const $=q=>document.querySelector(q);
 const esc=s=>(s??'').toString().replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const inr=n=>'₹'+Number(n||0).toLocaleString('en-IN');
 function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2600)}
+function ago(iso){
+  if(!iso)return '—';
+  const d=(Date.now()-new Date(iso).getTime())/1000;
+  if(d<3600)return 'just now';if(d<86400)return Math.floor(d/3600)+'h ago';
+  const days=Math.floor(d/86400);return days===1?'yesterday':days+'d ago';
+}
 async function mapi(path,opts={}){
   const headers={'Content-Type':'application/json','X-Master-Token':MT};
   const r=await fetch('/api/master'+path,{headers,...opts});
@@ -146,53 +247,153 @@ async function mLogin(){
 }
 function mLogout(){sessionStorage.removeItem('bf_master');location.reload()}
 
+function go(p){
+  document.querySelectorAll('.nav-it[data-p]').forEach(b=>b.classList.toggle('on',b.dataset.p===p));
+  document.querySelectorAll('.page').forEach(el=>el.classList.remove('on'));
+  $('#pg-'+p).classList.add('on');
+  if(p==='pay')loadPayments();
+  window.scrollTo(0,0);
+}
+function setFilter(f){FILTER=f;
+  document.querySelectorAll('.fchip').forEach(c=>c.classList.toggle('on',c.dataset.f===f));
+  renderWs();
+}
+function goExpiring(){go('ws');setFilter('expiring')}
+function goExpired(){go('ws');setFilter('expired')}
+
 async function boot(){
-  $('#gate').style.display='none';$('#panel').style.display='block';
+  $('#gate').style.display='none';$('#shell').style.display='block';
+  try{SETTINGS=await mapi('/settings')}catch(e){SETTINGS={}}
+  $('#waTpl').value=SETTINGS.wa_tpl||DEF_WA_TPL;
   await refresh();
 }
 async function refresh(){
   DATA=await mapi('/overview');
   const s=DATA.stats;
   $('#stats').innerHTML=`
-    <div class="stat"><div class="v">${s.total}</div><div class="l">Workspaces</div></div>
-    <div class="stat"><div class="v" style="color:var(--green)">${s.active}</div><div class="l">Active / Trial</div></div>
-    <div class="stat"><div class="v" style="color:var(--amber)">${s.expiring}</div><div class="l">Expiring ≤7d</div></div>
-    <div class="stat"><div class="v" style="color:var(--red)">${s.expired}</div><div class="l">Expired / Suspended</div></div>
+    <div class="stat click" onclick="go('ws');setFilter('all')"><div class="v">${s.total}</div><div class="l">Workspaces</div></div>
+    <div class="stat click" onclick="go('ws');setFilter('active')"><div class="v" style="color:var(--green)">${s.active}</div><div class="l">Active / Trial</div></div>
+    <div class="stat click" onclick="goExpiring()"><div class="v" style="color:var(--amber)">${s.expiring}</div><div class="l">Expiring ≤7d · tap</div></div>
+    <div class="stat click" onclick="goExpired()"><div class="v" style="color:var(--red)">${s.expired}</div><div class="l">Expired / Suspended</div></div>
     <div class="stat"><div class="v">${s.users}</div><div class="l">Total users</div></div>
-    <div class="stat"><div class="v" style="color:var(--orange)">${inr(s.revenue_month)}</div><div class="l">Collected this month</div></div>`;
+    <div class="stat click" onclick="go('pay')"><div class="v" style="color:var(--orange)">${inr(s.revenue_month)}</div><div class="l">Collected this month</div></div>`;
+  renderAttention();renderWs();renderPlans();
+}
+
+function renderAttention(){
+  const items=[];
+  DATA.workspaces.forEach(w=>{
+    if(w.status==='expiring')items.push(`<div class="payrow"><div><b>${esc(w.name)}</b> — <span style="color:var(--amber)">expires in ${w.days_left}d</span> (${esc(w.plan)})</div>
+      <button class="btn sm" onclick="waRemind(${w.id})">📤 Remind</button></div>`);
+    if(w.status==='expired')items.push(`<div class="payrow"><div><b>${esc(w.name)}</b> — <span style="color:var(--red)">EXPIRED ${w.expires_on}</span></div>
+      <button class="btn sm" onclick="extendModal(${w.id})">⏳ Renew</button></div>`);
+    if(w.status==='trial'&&w.trial_day)items.push(`<div class="payrow"><div><b>${esc(w.name)}</b> — <span style="color:var(--blue)">Trial day ${w.trial_day} of 14</span>${w.trial_day>=10?' · <b style="color:var(--amber)">call them now!</b>':''}</div>
+      <button class="btn sm ghost" onclick="waRemind(${w.id})">📤 Nudge</button></div>`);
+    if(w.status==='active'&&w.last_active&&(Date.now()-new Date(w.last_active).getTime())>7*86400000)
+      items.push(`<div class="payrow"><div><b>${esc(w.name)}</b> — <span style="color:var(--mut)">quiet for a while (last active ${ago(w.last_active)})</span></div>
+      <button class="btn sm ghost" onclick="go('ws')">👀 Check</button></div>`);
+  });
+  $('#attention').innerHTML=items.length?`<div class="card">${items.join('')}</div>`
+    :'<div class="card" style="color:var(--mut)">All quiet — nothing urgent right now 🎉</div>';
+}
+
+function filterList(){
+  const q=($('#wsSearch').value||'').toLowerCase();
+  return DATA.workspaces.filter(w=>{
+    if(FILTER==='active'&&w.status!=='active')return false;
+    if(FILTER==='trial'&&w.status!=='trial')return false;
+    if(FILTER==='expiring'&&w.status!=='expiring')return false;
+    if(FILTER==='expired'&&!(w.status==='expired'||w.status==='suspended'))return false;
+    if(q&&!(w.name.toLowerCase().includes(q)||w.owner_name.toLowerCase().includes(q)||w.owner_email.toLowerCase().includes(q)))return false;
+    return true;
+  });
+}
+function renderWs(){
+  const list=filterList();
   $('#wsTable').innerHTML=`
-    <thead><tr><th>Workspace</th><th>Plan</th><th>Status</th><th>Expires</th><th>Team</th><th>Clients</th><th>Tasks/mo</th><th>Paid total</th><th>Actions</th></tr></thead>
-    <tbody>${DATA.workspaces.map(w=>`
+    <thead><tr><th>Workspace</th><th>Plan</th><th>Status</th><th>Expires</th><th>Last active</th><th>Team</th><th>Clients</th><th>Tasks/wk</th><th>Paid total</th><th>Actions</th></tr></thead>
+    <tbody>${list.map(w=>`
       <tr>
-        <td><div class="wsname">${esc(w.name)}</div><div class="wsmail">${esc(w.owner_name)} · ${esc(w.owner_email)}</div>
+        <td><div class="wsname">${esc(w.name)} ${w.protected?'<span title="Your own workspace — protected">🛡️</span>':''}</div>
+          <div class="wsmail">${esc(w.owner_name)} · ${esc(w.owner_email)}</div>
           ${w.notes?`<div class="wsmail" style="color:var(--purple)">📝 ${esc(w.notes)}</div>`:''}</td>
-        <td>${esc(w.plan)}</td>
+        <td>${esc(w.plan)}${w.trial_day?`<div class="wsmail">Day ${w.trial_day}/14</div><div class="trialbar"><i style="width:${Math.round(w.trial_day/14*100)}%"></i></div>`:''}</td>
         <td><span class="badge ${w.status}">${w.status}</span></td>
         <td>${w.expires_on||'—'}${w.days_left!==null&&w.days_left>=0?`<div class="wsmail">${w.days_left}d left</div>`:''}</td>
-        <td>${w.members}</td><td>${w.clients}</td><td>${w.tasks_month}</td>
+        <td>${ago(w.last_active)}</td>
+        <td>${w.members}</td><td>${w.clients}</td><td>${w.tasks_week}</td>
         <td>${inr(w.total_paid)}</td>
         <td><div class="acts">
           <button class="btn sm" onclick="extendModal(${w.id})">⏳ Extend</button>
+          ${(w.status==='expiring'||w.status==='expired'||w.status==='trial')?`<button class="btn sm ghost" style="color:var(--green)" onclick="waRemind(${w.id})">📤</button>`:''}
           <button class="btn sm ghost" onclick="editWsModal(${w.id})">✎</button>
           <button class="btn sm ghost" onclick="resetModal(${w.id})">🔑</button>
           <button class="btn sm ghost" onclick="impersonate(${w.id})">👁</button>
-          ${w.status==='suspended'
+          ${w.protected?'':w.status==='suspended'
             ?`<button class="btn sm ghost" style="color:var(--green)" onclick="setStatus(${w.id},'active')">▶</button>`
             :`<button class="btn sm ghost" style="color:var(--red)" onclick="setStatus(${w.id},'suspended')">⏸</button>`}
         </div></td>
-      </tr>`).join('')||'<tr><td colspan="9" style="color:var(--mut)">No workspaces yet — create your first!</td></tr>'}</tbody>`;
+      </tr>`).join('')||'<tr><td colspan="10" style="color:var(--mut)">Nothing matches this filter.</td></tr>'}</tbody>`;
+}
+
+function planPriceText(p){
+  if(p.duration_val>0)return inr(p.price_pack)+' / '+p.duration_val+' '+(p.duration_val===1?p.duration_unit.replace(/s$/,''):p.duration_unit);
+  return p.price_m?inr(p.price_m)+'/mo':'Free';
+}
+function renderPlans(){
   $('#planGrid').innerHTML=DATA.plans.map(p=>`
     <div class="plan">
       <div style="display:flex;justify-content:space-between;align-items:flex-start">
         <div><div class="nm">${esc(p.name)}</div>
-          <div class="pr">${p.price_m?inr(p.price_m)+'/mo':'Free'}</div>
-          <div class="mm">${p.price_y?inr(p.price_y)+'/yr · ':''}${p.max_members?('up to '+p.max_members+' members'):'unlimited members'}</div></div>
+          <div class="pr">${p.price_m?inr(p.price_m)+'/mo':(p.duration_val>0?planPriceText(p):'Free')}</div>
+          <div class="mm">${p.price_y?inr(p.price_y)+'/yr · ':''}${p.max_members?('up to '+p.max_members+' members'):'unlimited members'}</div>
+          ${p.duration_val>0&&p.price_m?`<div class="pkg">📦 Package: ${planPriceText(p)}</div>`:''}
+          ${p.duration_val>0&&!p.price_m?`<div class="pkg">📦 Custom package plan</div>`:''}</div>
         <div style="display:flex;gap:4px">
           <button class="btn sm ghost" onclick="editPlanModal(${p.id})">✎</button>
           <button class="btn sm ghost" style="color:var(--red)" onclick="delPlan(${p.id})">×</button>
         </div>
       </div>
     </div>`).join('');
+}
+
+/* ---- payments page ---- */
+async function loadPayments(){
+  PAY=await mapi('/payments');
+  $('#payTotals').innerHTML=`
+    <div class="stat"><div class="v" style="color:var(--orange)">${inr(PAY.total_all)}</div><div class="l">All-time collected</div></div>
+    <div class="stat"><div class="v" style="color:var(--green)">${inr(PAY.total_year)}</div><div class="l">This year</div></div>
+    <div class="stat"><div class="v">${PAY.payments.length}</div><div class="l">Payments recorded</div></div>`;
+  if(!PAY.payments.length){$('#payList').innerHTML='<div style="color:var(--mut)">No payments yet. When you tap <b>Extend</b> on a workspace and enter an amount, it appears here automatically.</div>';return}
+  const byMonth={};
+  PAY.payments.forEach(p=>{const k=(p.paid_on||'').slice(0,7);(byMonth[k]=byMonth[k]||[]).push(p)});
+  const mName=k=>{const[y,m]=k.split('-');return new Date(y,m-1,1).toLocaleString('en-IN',{month:'long',year:'numeric'})};
+  $('#payList').innerHTML=Object.keys(byMonth).sort().reverse().map(k=>`
+    <div class="mgroup"><span>${mName(k)}</span><span>${inr(PAY.month_totals[k])}</span></div>
+    ${byMonth[k].map(p=>`<div class="payrow">
+      <div><b>${esc(p.ws_name)}</b><div class="wsmail">${p.paid_on}${p.note?' · '+esc(p.note):''}</div></div>
+      <div style="display:flex;gap:8px;align-items:center"><span class="amt">+${inr(p.amount)}</span>
+      <button class="btn sm ghost" style="color:var(--red)" onclick="delPayment(${p.id})">×</button></div>
+    </div>`).join('')}`).join('');
+}
+async function delPayment(id){
+  if(!confirm('Remove this payment entry? (Only the record — expiry stays as is)'))return;
+  try{await mapi('/payments/'+id,{method:'DELETE'});toast('Removed');loadPayments();refresh()}catch(e){toast(e)}
+}
+
+/* ---- WhatsApp reminder ---- */
+function waRemind(id){
+  const w=DATA.workspaces.find(x=>x.id===id);
+  const plan=DATA.plans.find(p=>p.name===w.plan);
+  let price='';
+  if(plan){price=plan.duration_val>0&&plan.price_pack?planPriceText(plan):(plan.price_m?inr(plan.price_m)+'/month':'')}
+  const tpl=($('#waTpl').value||DEF_WA_TPL);
+  const msg=tpl.replaceAll('{name}',w.owner_name).replaceAll('{plan}',w.plan)
+    .replaceAll('{expiry}',w.expires_on||'soon').replaceAll('{price}',price||'ask me for pricing');
+  window.open('https://wa.me/?text='+encodeURIComponent(msg),'_blank');
+}
+async function saveSettings(){
+  try{await mapi('/settings',{method:'PUT',body:JSON.stringify({wa_tpl:$('#waTpl').value})});toast('Template saved ✓')}catch(e){toast(e)}
 }
 
 /* ---- modals ---- */
@@ -217,7 +418,7 @@ function createWsModal(){
    </div>
    <div class="mrow">
      <div><label>Plan</label><select id="cwPlan">${DATA.plans.map(p=>`<option ${p.name==='Trial'?'selected':''}>${esc(p.name)}</option>`).join('')}</select></div>
-     <div><label>Paid months <span style="text-transform:none">(Trial = auto 14 days)</span></label><input id="cwMonths" type="number" min="0" value="0"></div>
+     <div><label>Paid months <span style="text-transform:none">(0 = use plan's package / Trial 14d)</span></label><input id="cwMonths" type="number" min="0" value="0"></div>
    </div>
    <button class="btn full" onclick="createWs()">Create workspace →</button>`);
 }
@@ -247,7 +448,7 @@ function copyCreds(){
   navigator.clipboard?.writeText(el.innerText).then(()=>toast('Copied ✓')).catch(()=>toast('Long-press to copy'));
 }
 function waCreds(email,pw,code,exp){
-  const msg=`Welcome to BuzzFlow! 🎉\\n\\nYour workspace is ready:\\n🔗 ${location.origin}/\\n📧 Email: ${email}\\n🔒 Password: ${pw}\\n🎟 Team invite code: ${code}${exp?'\\n📅 Valid till: '+exp:''}\\n\\nLogin and start managing your team!`;
+  const msg=`Welcome to BuzzFlow! 🎉\n\nYour workspace is ready:\n🔗 ${location.origin}/\n📧 Email: ${email}\n🔒 Password: ${pw}\n🎟 Team invite code: ${code}${exp?'\n📅 Valid till: '+exp:''}\n\nLogin and start managing your team!`;
   window.open('https://wa.me/?text='+encodeURIComponent(msg),'_blank');
 }
 
@@ -258,16 +459,19 @@ function extendModal(id){
    <h2 class="serif">Extend — ${esc(w.name)}</h2>
    <div style="color:var(--mut);font-size:12px">Current expiry: ${w.expires_on||'none'} · Plan: ${esc(w.plan)}</div>
    <div class="mrow">
-     <div><label>Add months</label><select id="exM"><option>1</option><option>3</option><option>6</option><option selected>12</option></select></div>
-     <div><label>Payment received (₹)</label><input id="exAmt" type="number" placeholder="0 = don't log payment"></div>
+     <div><label>Duration</label><input id="exV" type="number" min="1" value="1"></div>
+     <div><label>Unit</label><select id="exU"><option value="days">Days</option><option value="months" selected>Months</option><option value="years">Years</option></select></div>
    </div>
-   <label>Note (optional)</label><input id="exNote" placeholder="e.g. GPay ref 12345">
+   <div class="mrow">
+     <div><label>Payment received (₹)</label><input id="exAmt" type="number" placeholder="0 = don't log payment"></div>
+     <div><label>Note (optional)</label><input id="exNote" placeholder="e.g. GPay ref 12345"></div>
+   </div>
    <button class="btn full" onclick="doExtend(${id})">Extend & activate →</button>`);
 }
 async function doExtend(id){
   try{
     const j=await mapi('/workspaces/'+id+'/extend',{method:'POST',body:JSON.stringify({
-      months:+$('#exM').value,amount:+$('#exAmt').value||0,note:$('#exNote').value})});
+      value:+$('#exV').value||0,unit:$('#exU').value,amount:+$('#exAmt').value||0,note:$('#exNote').value})});
     closeModal();toast('Extended till '+j.expires_on+' ✓');refresh();
   }catch(e){toast(e)}
 }
@@ -281,7 +485,9 @@ function editWsModal(id){
    <label>Expiry date</label><input id="ewExp" type="date" value="${w.expires_on||''}">
    <label>Private notes (only you see this)</label><textarea id="ewNotes" rows="2" placeholder="e.g. paid via GPay, referred by...">${esc(w.notes)}</textarea>
    <button class="btn full" onclick="saveWs(${id})">Save</button>
-   <button class="danger" onclick="delWs(${id})">Delete workspace permanently (all their data)</button>`);
+   ${w.protected
+     ?'<div class="protected">🛡️ This is YOUR workspace (Buzz Media Fame) — it can never be deleted or suspended.</div>'
+     :`<button class="danger" onclick="delWsConfirm(${id})">Delete workspace permanently (all their data)</button>`}`);
 }
 async function saveWs(id){
   try{await mapi('/workspaces/'+id,{method:'PUT',body:JSON.stringify({
@@ -289,10 +495,18 @@ async function saveWs(id){
     closeModal();toast('Saved ✓');refresh();
   }catch(e){toast(e)}
 }
+function delWsConfirm(id){
+  const w=DATA.workspaces.find(x=>x.id===id);
+  openModal(`
+   <button class="x" onclick="closeModal()">×</button>
+   <h2 class="serif" style="color:var(--red)">Delete "${esc(w.name)}"?</h2>
+   <div style="color:var(--mut);font-size:12.5px;margin-top:6px">This erases their team, clients, tasks and reports <b>forever</b>. There is no undo.</div>
+   <label>Type the workspace name to confirm</label><input id="delType" placeholder="${esc(w.name)}">
+   <button class="btn full" style="background:var(--red)" onclick="delWs(${id})">I understand — delete forever</button>`);
+}
 async function delWs(id){
   const w=DATA.workspaces.find(x=>x.id===id);
-  if(!confirm('DELETE "'+w.name+'" and ALL their data forever?'))return;
-  if(!confirm('Are you REALLY sure? This cannot be undone.'))return;
+  if(($('#delType').value||'').trim()!==w.name){toast('Name does not match — not deleted');return}
   try{await mapi('/workspaces/'+id,{method:'DELETE'});closeModal();toast('Deleted');refresh()}catch(e){toast(e)}
 }
 async function setStatus(id,st){
@@ -323,39 +537,50 @@ async function impersonate(id){
 }
 
 /* plans */
-function editPlanModal(id){
-  const p=DATA.plans.find(x=>x.id===id);
-  openModal(`
-   <button class="x" onclick="closeModal()">×</button>
-   <h2 class="serif">Edit plan</h2>
-   <label>Name</label><input id="plName" value="${esc(p.name)}">
+function planFields(p){
+  p=p||{name:'',price_m:0,price_y:0,max_members:0,duration_val:0,duration_unit:'days',price_pack:0};
+  return `
+   <label>Name</label><input id="plName" value="${esc(p.name)}" placeholder="e.g. Enterprise">
    <div class="mrow">
      <div><label>Price / month (₹)</label><input id="plM" type="number" value="${p.price_m}"></div>
      <div><label>Price / year (₹)</label><input id="plY" type="number" value="${p.price_y}"></div>
    </div>
    <label>Max members (0 = unlimited)</label><input id="plMax" type="number" value="${p.max_members}">
+   <div style="margin-top:16px;padding:12px;border:1.5px dashed var(--purple);border-radius:12px">
+     <div style="font-size:12px;font-weight:700;color:var(--purple)">📦 Custom package (optional)</div>
+     <div style="font-size:11px;color:var(--mut)">Sell any duration at any price — e.g. 45 days for ₹1,500. New workspaces on this plan get this validity automatically. Set duration 0 to disable.</div>
+     <div class="mrow">
+       <div><label>Duration</label><input id="plDv" type="number" min="0" value="${p.duration_val||0}"></div>
+       <div><label>Unit</label><select id="plDu">
+         <option value="days" ${p.duration_unit==='days'?'selected':''}>Days</option>
+         <option value="months" ${p.duration_unit==='months'?'selected':''}>Months</option>
+         <option value="years" ${p.duration_unit==='years'?'selected':''}>Years</option></select></div>
+       <div><label>Package price (₹)</label><input id="plPp" type="number" value="${p.price_pack||0}"></div>
+     </div>
+   </div>`;
+}
+function planBody(){
+  return {name:$('#plName').value,price_m:+$('#plM').value||0,price_y:+$('#plY').value||0,
+    max_members:+$('#plMax').value||0,duration_val:+$('#plDv').value||0,
+    duration_unit:$('#plDu').value,price_pack:+$('#plPp').value||0};
+}
+function editPlanModal(id){
+  const p=DATA.plans.find(x=>x.id===id);
+  openModal(`<button class="x" onclick="closeModal()">×</button>
+   <h2 class="serif">Edit plan</h2>${planFields(p)}
    <button class="btn full" onclick="savePlan(${id})">Save plan</button>`);
 }
 async function savePlan(id){
-  try{await mapi('/plans/'+id,{method:'PUT',body:JSON.stringify({name:$('#plName').value,
-      price_m:+$('#plM').value||0,price_y:+$('#plY').value||0,max_members:+$('#plMax').value||0})});
+  try{await mapi('/plans/'+id,{method:'PUT',body:JSON.stringify(planBody())});
     closeModal();toast('Plan saved ✓');refresh()}catch(e){toast(e)}
 }
 function addPlanModal(){
-  openModal(`
-   <button class="x" onclick="closeModal()">×</button>
-   <h2 class="serif">New plan</h2>
-   <label>Name</label><input id="plName" placeholder="e.g. Enterprise">
-   <div class="mrow">
-     <div><label>Price / month (₹)</label><input id="plM" type="number" value="0"></div>
-     <div><label>Price / year (₹)</label><input id="plY" type="number" value="0"></div>
-   </div>
-   <label>Max members (0 = unlimited)</label><input id="plMax" type="number" value="0">
+  openModal(`<button class="x" onclick="closeModal()">×</button>
+   <h2 class="serif">New plan</h2>${planFields(null)}
    <button class="btn full" onclick="addPlan()">Create plan</button>`);
 }
 async function addPlan(){
-  try{await mapi('/plans',{method:'POST',body:JSON.stringify({name:$('#plName').value,
-      price_m:+$('#plM').value||0,price_y:+$('#plY').value||0,max_members:+$('#plMax').value||0})});
+  try{await mapi('/plans',{method:'POST',body:JSON.stringify(planBody())});
     closeModal();toast('Plan added ✓');refresh()}catch(e){toast(e)}
 }
 async function delPlan(id){

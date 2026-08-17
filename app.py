@@ -151,6 +151,8 @@ SCHEMA = """
       amount REAL NOT NULL DEFAULT 0, note TEXT DEFAULT '', paid_on TEXT);
     CREATE TABLE IF NOT EXISTS msessions(
       token TEXT PRIMARY KEY, created_at TEXT);
+    CREATE TABLE IF NOT EXISTS msettings(
+      key TEXT PRIMARY KEY, value TEXT);
 """
 
 WS_MIGRATIONS = (
@@ -158,7 +160,20 @@ WS_MIGRATIONS = (
     "ALTER TABLE workspaces ADD COLUMN {IFNE} expires_on TEXT",
     "ALTER TABLE workspaces ADD COLUMN {IFNE} wstatus TEXT DEFAULT 'active'",
     "ALTER TABLE workspaces ADD COLUMN {IFNE} mnotes TEXT DEFAULT ''",
+    "ALTER TABLE plans ADD COLUMN {IFNE} duration_val INTEGER DEFAULT 0",
+    "ALTER TABLE plans ADD COLUMN {IFNE} duration_unit TEXT DEFAULT 'days'",
+    "ALTER TABLE plans ADD COLUMN {IFNE} price_pack INTEGER DEFAULT 0",
 )
+
+PROTECTED_OWNER_EMAIL = 'nkheradia@gmail.com'   # master's own workspace — can never be deleted
+
+def ws_protected(wid):
+    r = db().execute("SELECT 1 FROM users WHERE workspace_id=? AND role='owner' AND email=? LIMIT 1",
+                     (wid, PROTECTED_OWNER_EMAIL)).fetchone()
+    return bool(r)
+
+def _unit_days(unit):
+    return {'days': 1, 'months': 30, 'years': 365}.get((unit or 'days').lower(), 1)
 
 def init_db():
     if USE_PG:
@@ -1127,10 +1142,24 @@ def master_overview():
         elif (w['plan'] or '') == 'Trial': status = 'trial'
         else: status = 'active'
         paid = d.execute("SELECT COALESCE(SUM(amount),0) s FROM wpayments WHERE workspace_id=?", (w['id'],)).fetchone()['s'] or 0
+        # last activity = newest task / update / login in this workspace
+        la_t = d.execute("SELECT MAX(created_at) m FROM tasks WHERE workspace_id=?", (w['id'],)).fetchone()['m']
+        la_u = d.execute("SELECT MAX(created_at) m FROM updates WHERE workspace_id=?", (w['id'],)).fetchone()['m']
+        la_k = d.execute("""SELECT MAX(k.created_at) m FROM tokens k JOIN users u ON u.id=k.user_id
+                            WHERE u.workspace_id=?""", (w['id'],)).fetchone()['m']
+        last_active = max([x for x in (la_t, la_u, la_k) if x], default=None)
+        tasks_week = d.execute("SELECT COUNT(*) n FROM tasks WHERE workspace_id=? AND created_at>=?",
+                               (w['id'], (today_ist() - timedelta(days=7)).isoformat())).fetchone()['n']
+        # trial progress: Day X of 14
+        trial_day = None
+        if (w['plan'] or '') == 'Trial' and exp:
+            trial_day = max(1, min(14, 14 - (days_left if days_left is not None else 0)))
         out.append(dict(id=w['id'], name=w['name'], plan=w['plan'] or 'Pro',
                         expires_on=exp, days_left=days_left, status=status, notes=w['mnotes'] or '',
                         owner_name=owner['name'] if owner else '—', owner_email=owner['email'] if owner else '—',
-                        members=members, clients=clients, tasks_month=tasks_m, total_paid=round(paid, 2)))
+                        owner_phone='', members=members, clients=clients, tasks_month=tasks_m,
+                        tasks_week=tasks_week, last_active=last_active, trial_day=trial_day,
+                        protected=ws_protected(w['id']), total_paid=round(paid, 2)))
     rev_month = d.execute("SELECT COALESCE(SUM(amount),0) s FROM wpayments WHERE substr(paid_on,1,7)=?", (month,)).fetchone()['s'] or 0
     plans = [dict(r) for r in d.execute("SELECT * FROM plans ORDER BY price_m").fetchall()]
     return jsonify(workspaces=out, plans=plans,
@@ -1159,7 +1188,12 @@ def master_create_ws():
     elif months > 0:
         exp = (today_ist() + timedelta(days=30 * months)).isoformat()
     else:
-        exp = None
+        # use the plan's custom package duration if it has one
+        pr = db().execute("SELECT duration_val, duration_unit FROM plans WHERE name=?", (plan,)).fetchone()
+        if pr and (pr['duration_val'] or 0) > 0:
+            exp = (today_ist() + timedelta(days=pr['duration_val'] * _unit_days(pr['duration_unit']))).isoformat()
+        else:
+            exp = None
     cur = db().execute("INSERT INTO workspaces(name,invite_code,created_at,plan,expires_on,wstatus) VALUES(?,?,?,?,?,'active')",
                        (name, code, now_ist().isoformat(), plan, exp))
     ws = cur.lastrowid
@@ -1179,21 +1213,52 @@ def master_create_ws():
 @master_required
 def master_extend(wid):
     d = request.json or {}
-    months = int(d.get('months') or 0)
-    if months <= 0: return jsonify(error="months required"), 400
+    # flexible duration: {value: N, unit: days|months|years}  (backward-compat: {months: N})
+    if d.get('months') and not d.get('value'):
+        value, unit = int(d['months']), 'months'
+    else:
+        value, unit = int(d.get('value') or 0), (d.get('unit') or 'days')
+    if value <= 0: return jsonify(error="duration required"), 400
+    if unit not in ('days', 'months', 'years'): return jsonify(error="bad unit"), 400
+    days = value * _unit_days(unit)
     w = db().execute("SELECT expires_on FROM workspaces WHERE id=?", (wid,)).fetchone()
     if not w: return jsonify(error="not found"), 404
     base = today_ist()
     if w['expires_on'] and date.fromisoformat(w['expires_on']) > base:
         base = date.fromisoformat(w['expires_on'])
-    new_exp = (base + timedelta(days=30 * months)).isoformat()
+    new_exp = (base + timedelta(days=days)).isoformat()
     db().execute("UPDATE workspaces SET expires_on=?, wstatus='active' WHERE id=?", (new_exp, wid))
     amount = float(d.get('amount') or 0)
     if amount > 0:
         db().execute("INSERT INTO wpayments(workspace_id,amount,note,paid_on) VALUES(?,?,?,?)",
-                     (wid, amount, d.get('note', f'{months} month(s) extension'), today_ist().isoformat()))
+                     (wid, amount, d.get('note') or f'{value} {unit} extension', today_ist().isoformat()))
     db().commit()
     return jsonify(ok=True, expires_on=new_exp)
+
+@app.get('/api/master/payments')
+@master_required
+def master_payments():
+    d = db()
+    rows = d.execute("""SELECT p.id, p.workspace_id, p.amount, p.note, p.paid_on, w.name AS ws_name
+                        FROM wpayments p LEFT JOIN workspaces w ON w.id=p.workspace_id
+                        ORDER BY p.paid_on DESC, p.id DESC""").fetchall()
+    out, months = [], {}
+    for r in rows:
+        rec = dict(r)
+        rec['ws_name'] = rec['ws_name'] or '(deleted workspace)'
+        out.append(rec)
+        mk = (r['paid_on'] or '')[:7]
+        months[mk] = round(months.get(mk, 0) + (r['amount'] or 0), 2)
+    year = today_ist().strftime('%Y')
+    total_year = round(sum(v for k, v in months.items() if k.startswith(year)), 2)
+    total_all = round(sum(months.values()), 2)
+    return jsonify(payments=out, month_totals=months, total_year=total_year, total_all=total_all)
+
+@app.delete('/api/master/payments/<int:pid>')
+@master_required
+def master_del_payment(pid):
+    db().execute("DELETE FROM wpayments WHERE id=?", (pid,)); db().commit()
+    return jsonify(ok=True)
 
 @app.put('/api/master/workspaces/<int:wid>')
 @master_required
@@ -1201,6 +1266,8 @@ def master_edit_ws(wid):
     d = request.json or {}
     w = db().execute("SELECT * FROM workspaces WHERE id=?", (wid,)).fetchone()
     if not w: return jsonify(error="not found"), 404
+    if d.get('wstatus') == 'suspended' and ws_protected(wid):
+        return jsonify(error="This is YOUR workspace — it cannot be suspended."), 403
     db().execute("UPDATE workspaces SET plan=?, wstatus=?, mnotes=?, expires_on=? WHERE id=?",
                  (d.get('plan', w['plan']), d.get('wstatus', w['wstatus'] or 'active'),
                   d.get('mnotes', w['mnotes'] or ''), d.get('expires_on', w['expires_on']), wid))
@@ -1230,6 +1297,8 @@ def master_impersonate(wid):
 @app.delete('/api/master/workspaces/<int:wid>')
 @master_required
 def master_delete_ws(wid):
+    if ws_protected(wid):
+        return jsonify(error="This is YOUR workspace (Buzz Media Fame) — it cannot be deleted."), 403
     db().execute("DELETE FROM workspaces WHERE id=?", (wid,)); db().commit()
     return jsonify(ok=True)
 
@@ -1239,9 +1308,13 @@ def master_edit_plan(pid):
     d = request.json or {}
     p = db().execute("SELECT * FROM plans WHERE id=?", (pid,)).fetchone()
     if not p: return jsonify(error="not found"), 404
-    db().execute("UPDATE plans SET name=?, price_m=?, price_y=?, max_members=? WHERE id=?",
+    unit = (d.get('duration_unit') or p['duration_unit'] or 'days').lower()
+    if unit not in ('days', 'months', 'years'): unit = 'days'
+    db().execute("""UPDATE plans SET name=?, price_m=?, price_y=?, max_members=?,
+                    duration_val=?, duration_unit=?, price_pack=? WHERE id=?""",
                  ((d.get('name') or p['name']).strip()[:30], int(d.get('price_m') or 0),
-                  int(d.get('price_y') or 0), int(d.get('max_members') or 0), pid))
+                  int(d.get('price_y') or 0), int(d.get('max_members') or 0),
+                  int(d.get('duration_val') or 0), unit, int(d.get('price_pack') or 0), pid))
     db().commit()
     return jsonify(ok=True)
 
@@ -1250,11 +1323,31 @@ def master_edit_plan(pid):
 def master_add_plan():
     d = request.json or {}
     if not (d.get('name') or '').strip(): return jsonify(error="name required"), 400
-    cur = db().execute("INSERT INTO plans(name,price_m,price_y,max_members) VALUES(?,?,?,?)",
+    unit = (d.get('duration_unit') or 'days').lower()
+    if unit not in ('days', 'months', 'years'): unit = 'days'
+    cur = db().execute("""INSERT INTO plans(name,price_m,price_y,max_members,duration_val,duration_unit,price_pack)
+                          VALUES(?,?,?,?,?,?,?)""",
                        (d['name'].strip()[:30], int(d.get('price_m') or 0),
-                        int(d.get('price_y') or 0), int(d.get('max_members') or 0)))
+                        int(d.get('price_y') or 0), int(d.get('max_members') or 0),
+                        int(d.get('duration_val') or 0), unit, int(d.get('price_pack') or 0)))
     db().commit()
     return jsonify(id=cur.lastrowid)
+
+@app.get('/api/master/settings')
+@master_required
+def master_get_settings():
+    rows = db().execute("SELECT key, value FROM msettings").fetchall()
+    return jsonify({r['key']: r['value'] for r in rows})
+
+@app.put('/api/master/settings')
+@master_required
+def master_put_settings():
+    d = request.json or {}
+    for k, v in d.items():
+        db().execute("""INSERT INTO msettings(key,value) VALUES(?,?)
+                        ON CONFLICT(key) DO UPDATE SET value=?""", (str(k)[:50], str(v)[:2000], str(v)[:2000]))
+    db().commit()
+    return jsonify(ok=True)
 
 @app.delete('/api/master/plans/<int:pid>')
 @master_required
