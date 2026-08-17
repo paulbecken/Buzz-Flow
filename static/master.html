@@ -114,8 +114,12 @@ html.dark .btn{background:#EDEBF2;color:#1A1B22}
 .badge.pending{background:rgba(224,154,13,.15);color:var(--amber)}
 .badge.rewarded{background:rgba(78,155,110,.15);color:var(--sage)}
 .acts{display:flex;gap:5px;flex-wrap:wrap}
-.fchip{font-size:11px;font-weight:600;padding:6px 13px;border-radius:20px;background:var(--chipbg);border:1.5px solid var(--line);color:var(--mut)}
-.fchip.on{border-color:var(--orange);color:#fff;background:linear-gradient(135deg,var(--orange),#FF7A44)}
+.searchwrap{display:flex;align-items:center;gap:9px;background:var(--chipbg);border:1px solid var(--line);border-radius:14px;padding:10px 14px;margin-bottom:10px;max-width:340px;backdrop-filter:blur(8px)}
+.searchwrap svg{width:15px;height:15px;color:var(--mut);flex:none}
+.searchwrap input{border:none;background:none;padding:0;border-radius:0;font-size:13px;backdrop-filter:none}
+.tube{display:flex;background:var(--chipbg);border:1px solid var(--line);border-radius:14px;padding:4px;margin-bottom:14px;max-width:520px;backdrop-filter:blur(8px)}
+.tube button{flex:1;font-size:11.5px;font-weight:600;padding:8px 4px;border-radius:10px;color:var(--mut);transition:.15s;white-space:nowrap}
+.tube button.on{background:linear-gradient(135deg,var(--orange),#FF7A44);color:#fff;box-shadow:0 3px 10px rgba(255,90,31,.3)}
 .trialbar{height:4px;border-radius:4px;background:var(--chipbg);margin-top:5px;overflow:hidden;width:90px}
 .trialbar i{display:block;height:100%;background:var(--blue)}
 .refline{font-size:11px;color:var(--purple);font-weight:600}
@@ -125,10 +129,9 @@ html.dark .btn{background:#EDEBF2;color:#1A1B22}
 .wcards{display:none}
 .wcard{padding:15px 16px;margin-bottom:11px}
 .wcard .hd{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
-.wcard .statgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-top:11px}
-.wcard .sg{background:var(--chipbg);border:1px solid var(--line);border-radius:11px;padding:8px 6px;text-align:center}
-.wcard .sg .v{font-weight:700;font-size:14px}
-.wcard .sg .k{font-size:8.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--mut);margin-top:1px}
+.wcard .meta{display:flex;flex-wrap:wrap;gap:4px 14px;margin-top:10px;font-size:12px;color:var(--mut)}
+.wcard .meta b{color:var(--ink);font-weight:600}
+.wcard .meta .pd{color:var(--sage);font-weight:700}
 .wcard .actrow{display:flex;gap:6px;margin-top:11px;flex-wrap:wrap}
 .wcard .actrow .btn{flex:1;min-width:60px;padding:8px 4px;font-size:11px}
 
@@ -184,8 +187,8 @@ html.dark .btn{background:#EDEBF2;color:#1A1B22}
   .tophead .topacts .deskonly{display:none}
   .bnav{display:flex;position:fixed;bottom:0;left:0;right:0;z-index:50;padding:8px 4px calc(8px + env(safe-area-inset-bottom));justify-content:space-around;
     background:var(--sideglass);backdrop-filter:blur(20px) saturate(1.4);border-top:1px solid var(--glass-brd)}
-  .bnav button{display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:3px;color:var(--mut);font-size:9px;font-weight:600;padding:4px 0;border-radius:10px;flex:1;text-align:center}
-  .bnav button svg{width:19px;height:19px}
+  .bnav button{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;color:var(--mut);font-size:8.5px;font-weight:600;padding:0;border-radius:10px;flex:1 1 0;min-width:0;height:48px;text-align:center;white-space:nowrap;overflow:hidden}
+  .bnav button svg{width:19px;height:19px;flex:none}
   .bnav button.on{color:var(--orange)}
   .wst{display:none}
   .wcards{display:block}
@@ -252,13 +255,13 @@ html.dark .btn{background:#EDEBF2;color:#1A1B22}
           <button class="btn orange" onclick="createWsModal()">＋ Create</button>
           <button class="icon-btn deskonly" onclick="mLogout()" title="Log out">⎋</button>
         </div></div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;align-items:center">
-        <input id="wsSearch" placeholder="🔍 Search…" style="max-width:220px" oninput="renderWs()">
-        <button class="fchip on" data-f="all" onclick="setFilter('all')">All</button>
-        <button class="fchip" data-f="active" onclick="setFilter('active')">Active</button>
-        <button class="fchip" data-f="trial" onclick="setFilter('trial')">Trial</button>
-        <button class="fchip" data-f="expiring" onclick="setFilter('expiring')">Expiring</button>
-        <button class="fchip" data-f="expired" onclick="setFilter('expired')">Expired</button>
+      <div class="searchwrap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg><input id="wsSearch" placeholder="Search workspaces" oninput="renderWs()"></div>
+      <div class="tube">
+        <button class="on" data-f="all" onclick="setFilter('all')">All</button>
+        <button data-f="active" onclick="setFilter('active')">Active</button>
+        <button data-f="trial" onclick="setFilter('trial')">Trial</button>
+        <button data-f="expiring" onclick="setFilter('expiring')">Expiring</button>
+        <button data-f="expired" onclick="setFilter('expired')">Expired</button>
       </div>
       <div class="glass card" style="overflow-x:auto"><table class="wst" id="wsTable"></table></div>
       <div class="wcards" id="wsCards"></div>
@@ -333,9 +336,14 @@ html.dark .btn{background:#EDEBF2;color:#1A1B22}
         <div class="topacts"><button class="icon-btn deskonly" onclick="mLogout()" title="Log out">⎋</button></div></div>
       <div class="glass card">
         <div style="font-weight:700;margin-bottom:4px">🎯 Monthly sales target</div>
-        <div style="color:var(--mut);font-size:12px">Your collection goal — tracked live on the dashboard with smart suggestions.</div>
+        <div style="color:var(--mut);font-size:12px">Your goals — all tracked live on the dashboard with smart suggestions.</div>
         <div class="mrow" style="margin-top:6px">
-          <div><label>Target amount (₹ / month)</label><input id="salesTgt" type="number" placeholder="e.g. 50000"></div>
+          <div><label>Collection target (₹/mo)</label><input id="salesTgt" type="number" placeholder="e.g. 50000"></div>
+          <div><label>New clients target (/mo)</label><input id="tgtClients" type="number" placeholder="e.g. 3"></div>
+        </div>
+        <div class="mrow">
+          <div><label>Renewals target (/mo)</label><input id="tgtRenew" type="number" placeholder="e.g. 5"></div>
+          <div><label>Avg. deal size (₹, for AI tips)</label><input id="tgtDeal" type="number" placeholder="e.g. 2000"></div>
         </div>
         <button class="btn orange" style="margin-top:12px" onclick="saveSettings()">Save</button>
       </div>
@@ -352,6 +360,11 @@ html.dark .btn{background:#EDEBF2;color:#1A1B22}
       <div class="glass card">
         <div style="font-weight:700;margin-bottom:4px">💳 Razorpay</div>
         <div style="color:var(--mut);font-size:12.5px">Coming soon — payment links straight from the Extend screen once you get the gateway.</div>
+      </div>
+      <div class="glass card">
+        <div style="font-weight:700;margin-bottom:4px">♻️ Reset Master settings</div>
+        <div style="color:var(--mut);font-size:12.5px">Clears only the panel settings (targets, templates) back to fresh. Workspaces, payments, referrals & plans are NOT touched.</div>
+        <button class="btn ghost" style="margin-top:12px;color:var(--red);border-color:rgba(224,82,82,.4)" onclick="resetMaster()">Reset settings</button>
       </div>
     </div>
   </div>
@@ -406,7 +419,7 @@ function go(p){
   window.scrollTo(0,0);
 }
 function setFilter(f){FILTER=f;
-  document.querySelectorAll('.fchip').forEach(c=>c.classList.toggle('on',c.dataset.f===f));
+  document.querySelectorAll('.tube button').forEach(c=>c.classList.toggle('on',c.dataset.f===f));
   renderWs();
 }
 
@@ -436,6 +449,9 @@ async function boot(){
   try{SETTINGS=await mapi('/settings')}catch(e){SETTINGS={}}
   $('#waTpl').value=SETTINGS.wa_tpl||DEF_WA_TPL;
   $('#salesTgt').value=SETTINGS.sales_target||'';
+  $('#tgtClients').value=SETTINGS.tgt_clients||'';
+  $('#tgtRenew').value=SETTINGS.tgt_renew||'';
+  $('#tgtDeal').value=SETTINGS.tgt_deal||'';
   await refresh();
 }
 async function refresh(){
@@ -452,39 +468,51 @@ async function refresh(){
 }
 
 /* ---- smart sales target ---- */
+function goalBar(label,got,tgt,fmt){
+  const pct=Math.min(100,Math.round(got*100/Math.max(1,tgt)));
+  return `<div style="margin-top:11px">
+    <div class="row" style="font-size:12.5px"><div style="font-weight:600">${label}</div>
+      <div><b style="color:var(--sage)">${fmt(got)}</b> <span style="color:var(--mut)">/ ${fmt(tgt)} · ${pct}%</span></div></div>
+    <div class="bar" style="margin-top:5px;height:8px"><i class="${pct>=100?'full':''}" style="width:${pct}%"></i></div></div>`;
+}
 function renderTarget(){
   const tgt=+SETTINGS.sales_target||0;
-  if(!tgt){$('#tgtCard').innerHTML=`<div class="row"><div style="font-weight:700">🎯 Monthly sales target</div>
-    <button class="btn sm ghost" onclick="go('set')">Set target →</button></div>
-    <div style="color:var(--mut);font-size:12px;margin-top:4px">Set your monthly goal in Settings — I'll track it and suggest how to hit it.</div>`;return}
+  const tgtC=+SETTINGS.tgt_clients||0;
+  const tgtR=+SETTINGS.tgt_renew||0;
+  if(!tgt&&!tgtC&&!tgtR){$('#tgtCard').innerHTML=`<div class="row"><div style="font-weight:700">🎯 Monthly targets</div>
+    <button class="btn sm ghost" onclick="go('set')">Set targets →</button></div>
+    <div style="color:var(--mut);font-size:12px;margin-top:4px">Set collection / new-client / renewal goals in Settings — I'll track them and suggest how to hit them.</div>`;return}
   const got=DATA.stats.revenue_month||0;
-  const pct=Math.min(100,Math.round(got*100/tgt));
   const gap=Math.max(0,tgt-got);
-  // days left in month
   const now=new Date();const daysLeft=new Date(now.getFullYear(),now.getMonth()+1,0).getDate()-now.getDate();
-  // smart suggestions from live data
   const plans=DATA.plans.filter(p=>p.price_m>0).sort((a,b)=>a.price_m-b.price_m);
   const cheap=plans[0], top=plans[plans.length-1];
+  const avgDeal=+SETTINGS.tgt_deal||0;
   const expiring=DATA.workspaces.filter(w=>w.status==='expiring');
   const expired=DATA.workspaces.filter(w=>w.status==='expired');
   const trials=DATA.workspaces.filter(w=>w.status==='trial');
+  let bars='';
+  if(tgt)bars+=goalBar('💰 Collection',got,tgt,inr);
+  if(tgtC)bars+=goalBar('🏢 New clients',DATA.stats.new_month||0,tgtC,x=>x);
+  if(tgtR)bars+=goalBar('🔄 Renewals / payments',DATA.stats.renewals_month||0,tgtR,x=>x);
   let tips=[];
-  if(gap<=0){tips.push('Target smashed! 🎉 Raise it next month — growth mindset.');}
-  else{
+  if(tgt&&gap<=0){tips.push('Collection target smashed! 🎉 Raise it next month — growth mindset.');}
+  else if(tgt){
     if(expiring.length){
       const est=expiring.reduce((a,w)=>{const p=plans.find(x=>x.name===w.plan);return a+(p?p.price_m:0)},0);
-      tips.push(`<b>${expiring.length} renewal${expiring.length>1?'s':''} due</b> worth ~${inr(est)} — send reminders today (Workspaces → Remind).`);
+      tips.push(`<b>${expiring.length} renewal${expiring.length>1?'s':''} due</b> worth ~${inr(est)} — send reminders today.`);
     }
-    if(expired.length)tips.push(`<b>${expired.length} expired</b> workspace${expired.length>1?'s':''} — win-back call could recover them.`);
+    if(expired.length)tips.push(`<b>${expired.length} expired</b> — win-back call could recover them.`);
     if(trials.length)tips.push(`<b>${trials.length} trial${trials.length>1?'s':''}</b> running — convert even one and you're closer.`);
-    if(top&&gap>0)tips.push(`Gap is ${inr(gap)} ≈ <b>${Math.ceil(gap/top.price_m)} × ${esc(top.name)}</b> (${inr(top.price_m)}) or <b>${Math.ceil(gap/cheap.price_m)} × ${esc(cheap.name)}</b> (${inr(cheap.price_m)}) client${Math.ceil(gap/cheap.price_m)>1?'s':''}.`);
-    if(daysLeft>0)tips.push(`${daysLeft} day${daysLeft>1?'s':''} left this month — that's ${inr(Math.ceil(gap/Math.max(1,daysLeft)))} /day to collect.`);
+    if(avgDeal>0)tips.push(`Gap ${inr(gap)} ≈ <b>${Math.ceil(gap/avgDeal)} deal${Math.ceil(gap/avgDeal)>1?'s':''}</b> at your avg ${inr(avgDeal)}.`);
+    else if(top)tips.push(`Gap ${inr(gap)} ≈ <b>${Math.ceil(gap/top.price_m)} × ${esc(top.name)}</b> or <b>${Math.ceil(gap/cheap.price_m)} × ${esc(cheap.name)}</b>.`);
+    if(daysLeft>0)tips.push(`${daysLeft} day${daysLeft>1?'s':''} left — ${inr(Math.ceil(gap/Math.max(1,daysLeft)))} /day to collect.`);
   }
-  $('#tgtCard').innerHTML=`<div class="row">
-    <div style="font-weight:700">🎯 Monthly sales target</div>
-    <div><span class="big" style="color:var(--sage)">${inr(got)}</span> <span style="color:var(--mut)">/ ${inr(tgt)} · ${pct}%</span></div></div>
-    <div class="bar"><i class="${pct>=100?'full':''}" style="width:${pct}%"></i></div>
-    <div class="aitip">💡 ${tips.join('<br>💡 ')}</div>`;
+  if(tgtC&&(DATA.stats.new_month||0)<tgtC)tips.push(`Need <b>${tgtC-(DATA.stats.new_month||0)} more new client${tgtC-(DATA.stats.new_month||0)>1?'s':''}</b> — referral codes & demos are your fastest route.`);
+  $('#tgtCard').innerHTML=`<div class="row"><div style="font-weight:700">🎯 Monthly targets</div>
+    <button class="btn sm ghost" onclick="go('set')">Edit</button></div>
+    ${bars}
+    ${tips.length?`<div class="aitip">💡 ${tips.join('<br>💡 ')}</div>`:''}`;
 }
 
 function renderAttention(){
@@ -555,13 +583,13 @@ function renderWs(){
         </div>
         <span class="badge ${w.status}">${w.status}</span>
       </div>
-      <div class="statgrid">
-        <div class="sg"><div class="v">${esc(w.plan)}</div><div class="k">Plan</div></div>
-        <div class="sg"><div class="v">${w.protected?'∞':(w.days_left!==null&&w.days_left>=0?w.days_left+'d':'—')}</div><div class="k">${w.protected?'Unlimited':'Left'}</div></div>
-        <div class="sg"><div class="v" style="color:var(--sage)">${inr(w.total_paid)}</div><div class="k">Paid</div></div>
-        <div class="sg"><div class="v">${w.members}</div><div class="k">👥 Team</div></div>
-        <div class="sg"><div class="v">${w.clients}</div><div class="k">🏢 Clients</div></div>
-        <div class="sg"><div class="v">${w.tasks_week}</div><div class="k">✅ Tasks/wk</div></div>
+      <div class="meta">
+        <span><b>${esc(w.plan)}</b></span>
+        <span>${w.protected?'<b style="color:var(--sage)">∞ Unlimited</b>':(w.days_left!==null&&w.days_left>=0?`<b>${w.days_left}d</b> left`:'—')}</span>
+        <span class="pd">${inr(w.total_paid)}</span>
+        <span>👥 <b>${w.members}</b></span>
+        <span>🏢 <b>${w.clients}</b></span>
+        <span>✅ <b>${w.tasks_week}</b>/wk</span>
       </div>
       <div class="actrow">
         <button class="btn sm orange" onclick="extendModal(${w.id})">⏳ Extend</button>
@@ -710,6 +738,24 @@ async function loadRefs(){
     </div>`).join('')
   :'<div style="color:var(--mut)">No referrals yet. The easy way: when creating a workspace, type the referrer\'s code in the Referral code box — it links automatically.</div>';
 }
+function refPicto(){
+  const from=$('#rfFrom').selectedOptions[0]?.text||'Referrer';
+  const toSel=$('#rfTo').selectedOptions[0];
+  const to=($('#rfName').value.trim())||(toSel&&toSel.value?toSel.text:'New agency');
+  const v=+$('#rfV').value||1,u=$('#rfU').value,d=+$('#rfD').value||0;
+  $('#refPicto').innerHTML=`
+   <div style="display:flex;align-items:center;gap:8px;justify-content:center;flex-wrap:wrap">
+     <div style="border:2px solid var(--orange);border-radius:13px;padding:10px 13px;text-align:center;min-width:110px">
+       <div style="font-weight:700;font-size:12.5px">${esc(from==='— select —'?'Referrer':from)}</div>
+       <div style="font-size:10.5px;color:var(--sage);font-weight:700;margin-top:2px">🎁 ${v} ${v===1?u.replace(/s$/,''):u} free</div>
+     </div>
+     <div style="font-size:18px;color:var(--mut)">→</div>
+     <div style="border:2px solid var(--purple);border-radius:13px;padding:10px 13px;text-align:center;min-width:110px">
+       <div style="font-weight:700;font-size:12.5px">${esc(to)}</div>
+       <div style="font-size:10.5px;color:var(--purple);font-weight:700;margin-top:2px">💜 ${d}% off</div>
+     </div>
+   </div>`;
+}
 function addRefModal(){
   openModal(`
    <button class="x" onclick="closeModal()">×</button>
@@ -719,12 +765,22 @@ function addRefModal(){
    <input id="rfCode" placeholder="e.g. BMF-3F2A" oninput="lookupCode()" style="text-transform:uppercase">
    <div id="rfCodeHit" style="font-size:12px;margin-top:6px;color:var(--sage);font-weight:600"></div>
    <label>Or pick referrer manually</label>
-   <select id="rfFrom"><option value="">— select —</option>${DATA.workspaces.map(w=>`<option value="${w.id}">${esc(w.name)}</option>`).join('')}</select>
+   <select id="rfFrom" onchange="refPicto()"><option value="">— select —</option>${DATA.workspaces.map(w=>`<option value="${w.id}">${esc(w.name)}</option>`).join('')}</select>
    <label>Who did they refer?</label>
-   <select id="rfTo"><option value="">— not a workspace yet, type below —</option>
+   <select id="rfTo" onchange="refPicto()"><option value="">— not a workspace yet, type below —</option>
      ${DATA.workspaces.map(w=>`<option value="${w.id}">${esc(w.name)}</option>`).join('')}</select>
-   <input id="rfName" placeholder="or type the referred agency's name" style="margin-top:8px">
+   <input id="rfName" placeholder="or type the referred agency's name" style="margin-top:8px" oninput="refPicto()">
+   <div style="margin-top:14px;padding:12px;border:1.5px dashed var(--line);border-radius:12px">
+     <div style="font-size:11px;font-weight:700;color:var(--mut);letter-spacing:.06em;text-transform:uppercase;margin-bottom:2px">Reward deal</div>
+     <div class="mrow">
+       <div><label>Referrer gets</label><input id="rfV" type="number" min="1" value="1" oninput="refPicto()"></div>
+       <div><label>Unit</label><select id="rfU" onchange="refPicto()"><option value="days">Days</option><option value="months" selected>Months</option><option value="years">Years</option></select></div>
+       <div><label>Referred gets % off</label><input id="rfD" type="number" min="0" max="100" value="20" oninput="refPicto()"></div>
+     </div>
+   </div>
+   <div id="refPicto" style="margin-top:14px"></div>
    <button class="btn orange full" onclick="addRef()">Save referral</button>`);
+  refPicto();
 }
 let _codeWs=null;
 async function lookupCode(){
@@ -733,14 +789,15 @@ async function lookupCode(){
   if(code.length<4)return;
   try{const j=await mapi('/refcode/'+encodeURIComponent(code));
     _codeWs=j.id;$('#rfCodeHit').textContent='✓ Code belongs to: '+j.name;
-    $('#rfFrom').value=j.id;
+    $('#rfFrom').value=j.id;refPicto();
   }catch(e){$('#rfCodeHit').textContent=''}
 }
 async function addRef(){
   const from=_codeWs||+$('#rfFrom').value||0;
   if(!from){toast('Enter a referral code or pick the referrer');return}
   try{await mapi('/referrals',{method:'POST',body:JSON.stringify({referrer_ws:from,
-    referred_ws:+$('#rfTo').value||null,referred_name:$('#rfName').value})});
+    referred_ws:+$('#rfTo').value||null,referred_name:$('#rfName').value,
+    value:+$('#rfV').value||1,unit:$('#rfU').value,discount:+$('#rfD').value||0})});
     closeModal();toast('Referral saved ✓');loadRefs()}catch(e){toast(e)}
 }
 function editRefModal(id){
@@ -795,9 +852,28 @@ function waRemind(id){
   window.open('https://wa.me/?text='+encodeURIComponent(msg),'_blank');
 }
 async function saveSettings(){
-  try{await mapi('/settings',{method:'PUT',body:JSON.stringify({wa_tpl:$('#waTpl').value,sales_target:$('#salesTgt').value||'0'})});
-    SETTINGS.wa_tpl=$('#waTpl').value;SETTINGS.sales_target=$('#salesTgt').value;
+  try{
+    const b={wa_tpl:$('#waTpl').value,sales_target:$('#salesTgt').value||'0',
+      tgt_clients:$('#tgtClients').value||'0',tgt_renew:$('#tgtRenew').value||'0',tgt_deal:$('#tgtDeal').value||'0'};
+    await mapi('/settings',{method:'PUT',body:JSON.stringify(b)});
+    Object.assign(SETTINGS,b);
     toast('Saved ✓');renderTarget()}catch(e){toast(e)}
+}
+async function resetMaster(){
+  openModal(`
+   <button class="x" onclick="closeModal()">×</button>
+   <h2 class="serif">Reset Master settings?</h2>
+   <div style="color:var(--mut);font-size:12.5px;margin-top:6px;line-height:1.7">This clears only <b>your panel's settings</b> — sales targets, WhatsApp template — back to fresh defaults.<br><br><b style="color:var(--sage)">Nothing else is touched:</b> all workspaces, payments, referrals, plans and client data stay exactly as they are.</div>
+   <div class="mrow" style="margin-top:16px">
+     <div><button class="btn full" style="background:var(--red);color:#fff;margin-top:0" onclick="doResetMaster()">Yes, reset settings</button></div>
+     <div><button class="btn ghost full" style="margin-top:0" onclick="closeModal()">Cancel</button></div>
+   </div>`);
+}
+async function doResetMaster(){
+  try{await mapi('/reset-settings',{method:'POST'});
+    SETTINGS={};
+    $('#waTpl').value=DEF_WA_TPL;$('#salesTgt').value='';$('#tgtClients').value='';$('#tgtRenew').value='';$('#tgtDeal').value='';
+    closeModal();toast('Master settings reset ✓');renderTarget()}catch(e){toast(e)}
 }
 
 /* ---- modals ---- */
@@ -820,19 +896,37 @@ function createWsModal(){
      <div><label>Password</label><input id="cwPw" value="${'BF'+Math.random().toString(36).slice(2,8).toUpperCase()}"></div>
      <div><label>Team invite code</label><input id="cwCode" placeholder="auto if empty"></div>
    </div>
-   <div class="mrow">
-     <div><label>Plan</label><select id="cwPlan">${DATA.plans.map(p=>`<option ${p.name==='Trial'?'selected':''}>${esc(p.name)}</option>`).join('')}</select></div>
-     <div><label>Paid months (0 = plan default)</label><input id="cwMonths" type="number" min="0" value="0"></div>
+   <label>Plan</label><select id="cwPlan" onchange="cwPlanInfo()">${DATA.plans.map(p=>`<option ${p.name==='Trial'?'selected':''}>${esc(p.name)}</option>`).join('')}</select>
+   <div id="cwPlanInfo" style="font-size:12px;margin-top:7px;background:var(--chipbg);border:1px solid var(--line);border-radius:11px;padding:9px 12px;line-height:1.6"></div>
+   <div style="margin-top:14px;padding:12px;border:1.5px dashed var(--line);border-radius:12px">
+     <div style="font-size:11px;font-weight:700;color:var(--mut);letter-spacing:.06em;text-transform:uppercase">Customize (optional — overrides plan)</div>
+     <div class="mrow">
+       <div><label>Duration</label><input id="cwCv" type="number" min="0" placeholder="0"></div>
+       <div><label>Unit</label><select id="cwCu"><option value="days">Days</option><option value="months" selected>Months</option><option value="years">Years</option></select></div>
+       <div><label>Price (₹)</label><input id="cwCp" type="number" min="0" placeholder="0"></div>
+     </div>
+     <div style="font-size:10.5px;color:var(--mut);margin-top:5px">Price gets logged in Payments automatically.</div>
    </div>
    <label>Referral code (if they were referred — auto-links everything)</label>
    <input id="cwRefCode" placeholder="e.g. BMF-3F2A" style="text-transform:uppercase">
    <button class="btn orange full" onclick="createWs()">Create workspace →</button>`);
+  cwPlanInfo();
+}
+function cwPlanInfo(){
+  const p=DATA.plans.find(x=>x.name===$('#cwPlan').value);
+  if(!p){$('#cwPlanInfo').innerHTML='';return}
+  let h='';
+  if(p.duration_val>0)h=`🎁 <b>${esc(p.name)}</b> — ${pkgText(p)} · ${p.max_members?('up to '+p.max_members+' members'):'unlimited members'}<br><span style="color:var(--sage)">Validity auto-set: ${p.duration_val} ${p.duration_unit}</span>`;
+  else if(p.name==='Trial')h=`<b>Trial</b> — Free · 14 days auto · ${p.max_members?('up to '+p.max_members+' members'):'unlimited members'}`;
+  else h=`<b>${esc(p.name)}</b> — ${p.price_m?inr(p.price_m)+'/mo':'Free'}${p.price_y?' · '+inr(p.price_y)+'/yr':''} · ${p.max_members?('up to '+p.max_members+' members'):'unlimited members'}`;
+  $('#cwPlanInfo').innerHTML=h;
 }
 async function createWs(){
   try{
     const body={name:$('#cwName').value,owner_name:$('#cwOwner').value,owner_email:$('#cwEmail').value,
       password:$('#cwPw').value,invite_code:$('#cwCode').value,plan:$('#cwPlan').value,
-      months:+$('#cwMonths').value||0,ref_code:$('#cwRefCode').value.trim()};
+      months:0,custom_value:+$('#cwCv').value||0,custom_unit:$('#cwCu').value,custom_price:+$('#cwCp').value||0,
+      ref_code:$('#cwRefCode').value.trim()};
     const j=await mapi('/workspaces',{method:'POST',body:JSON.stringify(body)});
     const loginUrl=location.origin+'/';
     openModal(`

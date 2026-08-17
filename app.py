@@ -1181,6 +1181,8 @@ def master_overview():
                         referred_by=rby['name'] if rby else None, ref_bonus_days=bonus,
                         protected=ws_protected(w['id']), total_paid=round(paid, 2)))
     rev_month = d.execute("SELECT COALESCE(SUM(amount),0) s FROM wpayments WHERE substr(paid_on,1,7)=?", (month,)).fetchone()['s'] or 0
+    new_month = len([x for x in wss if (x['created_at'] or '')[:7] == month])
+    renewals_month = d.execute("SELECT COUNT(*) n FROM wpayments WHERE substr(paid_on,1,7)=?", (month,)).fetchone()['n']
     plans = [dict(r) for r in d.execute("SELECT * FROM plans ORDER BY price_m").fetchall()]
     return jsonify(workspaces=out, plans=plans,
                    stats=dict(total=len(out),
@@ -1188,6 +1190,7 @@ def master_overview():
                               expiring=len([w for w in out if w['status'] == 'expiring']),
                               expired=len([w for w in out if w['status'] in ('expired', 'suspended')]),
                               users=sum(w['members'] for w in out),
+                              new_month=new_month, renewals_month=renewals_month,
                               revenue_month=round(rev_month, 2)))
 
 @app.post('/api/master/workspaces')
@@ -1214,6 +1217,10 @@ def master_create_ws():
             exp = (today_ist() + timedelta(days=pr['duration_val'] * _unit_days(pr['duration_unit']))).isoformat()
         else:
             exp = None
+    cval = int(d.get('custom_value') or 0)
+    cunit = (d.get('custom_unit') or 'days')
+    if cval > 0 and cunit in ('days', 'months', 'years'):
+        exp = (today_ist() + timedelta(days=cval * _unit_days(cunit))).isoformat()
     cur = db().execute("INSERT INTO workspaces(name,invite_code,created_at,plan,expires_on,wstatus) VALUES(?,?,?,?,?,'active')",
                        (name, code, now_ist().isoformat(), plan, exp))
     ws = cur.lastrowid
@@ -1235,6 +1242,11 @@ def master_create_ws():
     if ref:
         db().execute("""INSERT INTO referrals(referrer_ws,referred_ws,referred_name,status,created_at)
                         VALUES(?,?,?,'pending',?)""", (ref, ws, name, now_ist().isoformat()))
+        db().commit()
+    cprice = float(d.get('custom_price') or 0)
+    if cprice > 0:
+        db().execute("INSERT INTO wpayments(workspace_id,ws_label,amount,note,paid_on) VALUES(?,?,?,?,?)",
+                     (ws, '', cprice, 'On workspace creation', today_ist().isoformat()))
         db().commit()
     return jsonify(id=ws, invite_code=code, expires_on=exp, referred_by=ref or None)
 
@@ -1434,10 +1446,18 @@ def master_add_referral():
     d = request.json or {}
     rid = int(d.get('referrer_ws') or 0)
     if not rid: return jsonify(error="referrer workspace required"), 400
-    db().execute("""INSERT INTO referrals(referrer_ws,referred_ws,referred_name,status,created_at)
-                    VALUES(?,?,?,'pending',?)""",
+    val = int(d.get('value') or 0)
+    unit = (d.get('unit') or 'months')
+    if unit not in ('days', 'months', 'years'): unit = 'months'
+    disc = int(d.get('discount') or 0)
+    days = val * _unit_days(unit) if val > 0 else 0
+    parts = []
+    if val: parts.append(f'plan: {val} {unit} free')
+    if disc: parts.append(f'{disc}% off for referred')
+    db().execute("""INSERT INTO referrals(referrer_ws,referred_ws,referred_name,status,reward_note,reward_days,created_at)
+                    VALUES(?,?,?,'pending',?,?,?)""",
                  (rid, d.get('referred_ws') or None, (d.get('referred_name') or '').strip(),
-                  now_ist().isoformat()))
+                  ' · '.join(parts), days, now_ist().isoformat()))
     db().commit()
     return jsonify(ok=True)
 
@@ -1454,7 +1474,7 @@ def master_reward_referral(rid):
         days = value * _unit_days(unit)
         note = f'+{value} {unit} free'
     else:
-        days = int(d.get('days') or 30)
+        days = int(d.get('days') or 0) or (r['reward_days'] or 30)
         note = f'+{days} days free'
     new_exp = None
     if not ws_protected(r['referrer_ws']):
@@ -1481,6 +1501,12 @@ def master_edit_referral(rid):
                   d.get('referred_name', r['referred_name']),
                   d.get('status', r['status']), rid))
     db().commit()
+    return jsonify(ok=True)
+
+@app.post('/api/master/reset-settings')
+@master_required
+def master_reset_settings():
+    db().execute("DELETE FROM msettings"); db().commit()
     return jsonify(ok=True)
 
 @app.get('/api/master/refcode/<code>')
