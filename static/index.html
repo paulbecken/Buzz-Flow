@@ -136,6 +136,11 @@ html.dark .btn{background:#EDEBF2;color:#1A1B22}
 .bar i.full{background:linear-gradient(90deg,#3E8E60,#5FB884)}
 
 /* board */
+.tasktabs{display:flex;gap:8px;margin-bottom:14px}
+.tasktabs button{flex:1;padding:11px 8px;border-radius:13px;border:1.5px solid var(--line);background:var(--glass2);font-size:13px;font-weight:600;color:var(--mut);backdrop-filter:blur(8px);transition:.15s}
+.tasktabs button.on{border-color:var(--orange);color:#fff;background:linear-gradient(135deg,var(--orange),#FF7A44);box-shadow:0 5px 15px rgba(255,90,31,.3)}
+.tasktabs button.newtab{border-style:dashed;color:var(--orange);border-color:rgba(255,90,31,.5)}
+.tasktabs button.newtab:hover{background:rgba(255,90,31,.1)}
 .board{display:grid;grid-template-columns:repeat(4,1fr);gap:13px;align-items:start}
 .col{background:var(--glass2);border:1px solid var(--glass-brd);border-radius:16px;padding:11px;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
 .col .ch{display:flex;align-items:center;gap:8px;font-size:11.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--mut);padding:4px 6px 10px}
@@ -504,6 +509,13 @@ async function renderDash(){
    <div class="sec-t">📦 Deliverables this month <span class="sm">tap to open clients</span></div>
    <div class="card" onclick="go('clients')" style="cursor:pointer">${delivRows||'<span class="hsub">No quotas set yet — add them in Clients.</span>'}</div>
 
+   ${ME.role!=='employee'?`
+   <div class="sec-t">📊 Work report <span class="sm">total & employee-wise breakdown</span></div>
+   <div class="card" style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+     <div style="flex:1;min-width:180px" class="hsub">Complete report: totals, per-employee delivery, client quotas & every task — ready for sharing or records.</div>
+     <button class="btn" onclick="downloadReportXlsx()">📥 Excel</button>
+     <button class="btn ghost" onclick="downloadReportPdf()">📄 PDF</button>
+   </div>`:''}
    <div class="sec-t">🤖 AI Insights <span class="sm">auto-analysis · names highlighted · visible to whole team</span></div>
    ${ins.insights.map(i=>`<div class="ins ${i.level}"><span class="ic">${i.icon}</span><span>${highlightNames(i.text)}</span></div>`).join('')}`;
 }
@@ -523,10 +535,12 @@ async function renderTasks(){
   m.innerHTML=`
    <div class="topbar"><div><div class="crumb">Workflow</div>
      <div class="h1 serif">Task <span class="it">board.</span></div>
-     <div class="hsub">Everyone can see all tasks — a little friendly competition 😉</div></div>
-     <div style="display:flex;gap:8px">
-      <button class="btn ghost" onclick="CACHE.mine=${mineOnly?'false':'true'};renderTasks()">${mineOnly?'👥 Everyone':'🙋 Only mine'}</button>
-      <button class="btn" onclick="taskModal()">+ New Task</button></div></div>
+     <div class="hsub">Sorted by due date — nearest deadline first</div></div></div>
+   <div class="tasktabs">
+     <button class="${mineOnly?'on':''}" onclick="CACHE.mine=true;renderTasks()">🙋 Only mine</button>
+     <button class="${!mineOnly?'on':''}" onclick="CACHE.mine=false;renderTasks()">👥 Everyone</button>
+     <button class="newtab" onclick="taskModal()">＋ New task</button>
+   </div>
    <div class="board">${cols}</div>`;
 }
 function tkCard(t,k){
@@ -535,8 +549,10 @@ function tkCard(t,k){
   const moves=[];
   if(idx>0)moves.push(`<button onclick="event.stopPropagation();moveTask(${t.id},'${STATUSES[idx-1][0]}')">←</button>`);
   if(idx<3)moves.push(`<button onclick="event.stopPropagation();moveTask(${t.id},'${STATUSES[idx+1][0]}')">${STATUSES[idx+1][1]} →</button>`);
+  const created=t.created_at?t.created_at.slice(0,16).replace('T',' '):'';
   return `<div class="tk" onclick="taskModal(${t.id})">
     <div class="t">${esc(t.title)}${t.qty>1?` <span style="color:var(--orange)">×${t.qty}</span>`:''}</div>
+    ${created?`<div style="font-size:9.5px;color:var(--mut);margin-top:2px">created ${created} IST</div>`:''}
     <div class="m">${t.client?`<span class="pill cl">${esc(t.client)}</span>`:''}
       <span class="pill">${esc(t.service)}</span>
       ${['urgent','high'].includes(t.priority)?`<span class="pill ${t.priority}">${t.priority}</span>`:''}
@@ -546,28 +562,102 @@ function tkCard(t,k){
 }
 async function moveTask(id,st){await api('/tasks/'+id,{method:'PUT',body:JSON.stringify({status:st})});toast(st==='done'?'Nice! Marked done ✅':'Moved');renderTasks()}
 
+function svcSelChange(sel, inputId){
+  const inp=document.getElementById(inputId);
+  if(sel.value==='__custom__'){inp.style.display='';inp.focus()}
+  else{inp.style.display='none';inp.value=sel.value}
+}
+function svcValue(selId, inputId){
+  const sel=document.getElementById(selId), inp=document.getElementById(inputId);
+  if(sel&&sel.value!=='__custom__')return sel.value;
+  return (inp?inp.value.trim():'')||'Other';
+}
+function toggleQuickClient(){document.getElementById('quickClient').classList.toggle('hide')}
+function toggleQuickQuota(){
+  const el=document.getElementById('quickQuota');
+  el.classList.toggle('hide');
+  const sel=document.getElementById('qqSvc');
+  if(sel&&!sel._wired){sel._wired=true;
+    sel.onchange=()=>{const t=document.getElementById('qqSvcTxt');
+      if(sel.value==='__custom__'){t.style.display='';t.focus()}else{t.style.display='none';t.value=''}}}
+}
+async function quickAddQuota(){
+  const cid=+document.getElementById('tClient').value;
+  if(!cid)return toast('Select a client first (above)');
+  const sel=document.getElementById('qqSvc');
+  const svc=sel.value==='__custom__'?document.getElementById('qqSvcTxt').value.trim():sel.value;
+  const target=+document.getElementById('qqTarget').value;
+  if(!svc)return toast('Pick or type a service');
+  if(!target)return toast('Enter the monthly target');
+  try{
+    await api('/clients/'+cid+'/quotas',{method:'POST',body:JSON.stringify({service:svc,target})});
+    document.getElementById('qqTarget').value='';
+    document.getElementById('quickQuota').classList.add('hide');
+    toast('Quota saved: '+target+' '+svc+'/month ✓');
+  }catch(e){toast(e)}
+}
+async function quickAddClient(){
+  const name=document.getElementById('qcName').value.trim();
+  if(!name)return toast('Enter the client name');
+  try{
+    const j=await api('/clients',{method:'POST',body:JSON.stringify({name,contact_phone:document.getElementById('qcPhone').value})});
+    const sel=document.getElementById('tClient');
+    const opt=document.createElement('option');
+    opt.value=j.id;opt.textContent=name;opt.selected=true;
+    sel.appendChild(opt);
+    document.getElementById('qcName').value='';document.getElementById('qcPhone').value='';
+    document.getElementById('quickClient').classList.add('hide');
+    toast('Client "'+name+'" added & selected ✓ — you can add another anytime');
+  }catch(e){toast(e)}
+}
 let MODAL_STATUS='todo';
 function pickStatus(s){MODAL_STATUS=s;document.querySelectorAll('#statSeg button').forEach(b=>b.classList.toggle('on',b.dataset.s===s))}
 async function taskModal(id){
-  const [cl,tm]=await Promise.all([api('/clients'),api('/team')]);
+  const [cl,tm,sv]=await Promise.all([api('/clients'),api('/team'),api('/services').catch(()=>({services:[]}))]);
+  CACHE.clients=cl.clients;
   const t=id?(CACHE.tasks||[]).find(x=>x.id===id):null;
   if(!t&&id){toast('Task not found');return}
   MODAL_STATUS=t?.status||'todo';
   const canAssign=ME.role!=='employee';
   const canDelete=ME.role!=='employee'&&id;
-  const svcOpts=[...new Set([...META.services,...(CACHE.tasks||[]).map(x=>x.service)])].filter(Boolean);
+  const svcOpts=[...new Set([...(sv.services||[]).map(x=>x.name),...(CACHE.tasks||[]).map(x=>x.service)])].filter(Boolean);
   openModal(`
    <button class="x" onclick="closeModal()">×</button>
    <h2 class="serif">${id?'Edit task':'New task'}</h2>
    <label>Title</label><input id="tTitle" value="${esc(t?.title||'')}" placeholder="e.g. Diwali offer reel">
    <div class="mrow"><div><label>Client</label><select id="tClient">
-     <option value="">— none —</option>${cl.clients.map(c=>`<option value="${c.id}" ${t?.client_id===c.id?'selected':''}>${esc(c.name)}</option>`).join('')}</select></div>
-   <div><label>Service — type any name</label>
-     <input id="tService" list="svcList" value="${esc(t?.service||'')}" placeholder="Reel, Podcast, Logo…">
-     <datalist id="svcList">${svcOpts.map(s=>`<option value="${esc(s)}">`).join('')}</datalist></div></div>
+     <option value="">— none —</option>${cl.clients.map(c=>`<option value="${c.id}" ${t?.client_id===c.id?'selected':''}>${esc(c.name)}</option>`).join('')}</select>
+     <button class="addline" style="display:block;margin-top:5px" onclick="toggleQuickClient()">＋ Add client &amp; work</button>
+     <div id="quickClient" class="hide" style="margin-top:8px;padding:10px;border:1.5px dashed var(--line);border-radius:12px">
+       <input id="qcName" placeholder="New client / brand name" style="margin-bottom:6px">
+       <div style="display:flex;gap:6px">
+         <input id="qcPhone" placeholder="Phone (optional)">
+         <button class="btn" style="padding:9px 14px;font-size:12.5px;flex:none" onclick="quickAddClient()">Save</button>
+       </div>
+       <div class="hsub" style="margin-top:5px;font-size:11px">Client is added &amp; selected instantly — the task you're filling is their first work.</div>
+     </div></div>
+   <div><label>Service</label>
+     <select id="tServiceSel" onchange="svcSelChange(this,'tService')">
+       ${svcOpts.map(s=>`<option value="${esc(s)}" ${t?.service===s?'selected':''}>${esc(s)}</option>`).join('')}
+       <option value="__custom__" ${t&&t.service&&!svcOpts.includes(t.service)?'selected':''}>✏️ Type manually…</option>
+     </select>
+     <input id="tService" value="${esc(t?.service||'')}" placeholder="Type service name"
+       style="margin-top:6px;${t&&t.service&&!svcOpts.includes(t.service)?'':'display:none'}"></div></div>
    <div class="mrow"><div><label>Quantity</label><input id="tQty" type="number" min="1" value="${t?.qty||1}"></div>
    <div><label>Priority</label><select id="tPri">${['low','medium','high','urgent'].map(p=>`<option ${t?.priority===p||(!t&&p==='medium')?'selected':''}>${p}</option>`).join('')}</select></div>
    <div><label>Due date</label><input id="tDue" type="date" value="${t?.due||''}"></div></div>
+   ${ME.role!=='employee'?`
+   <button class="addline" style="display:block;margin-top:4px" onclick="toggleQuickQuota()">＋ Add service quota for this client</button>
+   <div id="quickQuota" class="hide" style="margin-top:8px;padding:10px;border:1.5px dashed var(--line);border-radius:12px">
+     <div style="display:flex;gap:6px;align-items:flex-end">
+       <div style="flex:2"><label style="margin-top:0">Service</label>
+         <select id="qqSvc">${svcOpts.map(x=>`<option>${esc(x)}</option>`).join('')}<option value="__custom__">✏️ Type manually…</option></select>
+         <input id="qqSvcTxt" placeholder="Service name" style="margin-top:5px;display:none"></div>
+       <div style="flex:1"><label style="margin-top:0">Per month</label><input id="qqTarget" type="number" min="1" placeholder="e.g. 6"></div>
+       <button class="btn" style="padding:9px 14px;font-size:12.5px;flex:none" onclick="quickAddQuota()">Save</button>
+     </div>
+     <div class="hsub" style="margin-top:5px;font-size:11px">Adds/updates the monthly quota for the client selected above.</div>
+   </div>`:''}
    ${canAssign?`<label>Assignee</label><select id="tAss"><option value="">— unassigned —</option>
      ${tm.team.filter(u=>u.active).map(u=>`<option value="${u.id}" ${t?.assignee_id===u.id?'selected':''}>${esc(u.name)} (${esc(u.title||roleLabel(u.role))})</option>`).join('')}</select>`:''}
    <label>Notes</label><textarea id="tNotes" rows="2">${esc(t?.notes||'')}</textarea>
@@ -580,7 +670,7 @@ async function taskModal(id){
 }
 async function saveTask(id){
   const body={title:$('#tTitle').value,client_id:$('#tClient').value?+$('#tClient').value:null,
-    service:$('#tService').value.trim()||'Other',qty:+$('#tQty').value||1,priority:$('#tPri').value,
+    service:svcValue('tServiceSel','tService'),qty:+$('#tQty').value||1,priority:$('#tPri').value,
     due:$('#tDue').value||null,notes:$('#tNotes').value,status:MODAL_STATUS};
   if($('#tAss'))body.assignee_id=$('#tAss').value?+$('#tAss').value:null;
   try{
@@ -661,8 +751,10 @@ async function renderClients(){
    <div class="topbar"><div><div class="crumb">Accounts</div>
      <div class="h1 serif">Your <span class="it">clients.</span></div>
      <div class="hsub">Packages, quotas & live delivery progress${ME.role==='owner'?' · fees visible only to you':''}</div></div>
-     ${canEdit?'<button class="btn" onclick="clientModal()">+ Add Client</button>':''}</div>
-   <div class="grid g2">
+     <div style="display:flex;gap:8px">
+      ${canEdit?'<button class="btn ghost" onclick="renderServicesPage()">🛠 Services</button>':''}
+      ${canEdit?'<button class="btn" onclick="clientModal()">+ Add Client</button>':''}</div></div>
+   <div class="grid g2" id="clientsGrid">
     ${j.clients.map(c=>`
      <div class="card client-card" ${canEdit?`style="cursor:pointer" onclick="clientModal(${c.id})"`:''}>
       <div class="top"><div><h3>${esc(c.name)}</h3><div class="pk">${esc(c.package||'No package')} · ${esc(c.contact_name||'')} ${esc(c.contact_phone?('· '+c.contact_phone):'')}</div></div>
@@ -675,18 +767,31 @@ async function renderClients(){
       </div></div>`).join('')}
    </div>`;
 }
+let QSVC_OPTS=[];
 function quotaLineHtml(s='',t=''){
-  return `<div class="quota-line"><input class="svcin qS" list="svcList2" value="${esc(s)}" placeholder="Service name (type anything)">
+  const custom=s&&!QSVC_OPTS.includes(s);
+  return `<div class="quota-line"><span class="qwrap" style="flex:2;display:flex;flex-direction:column;gap:5px">
+   <select class="qSel" onchange="qSelChange(this)">
+     ${QSVC_OPTS.map(x=>`<option value="${esc(x)}" ${s===x?'selected':''}>${esc(x)}</option>`).join('')}
+     <option value="__custom__" ${custom?'selected':''}>✏️ Type manually…</option>
+   </select>
+   <input class="qS" value="${esc(s)}" placeholder="Type service name" style="${custom?'':'display:none'}"></span>
    <input class="qT" type="number" min="0" placeholder="/month" value="${t}">
    <button class="rm" onclick="this.parentElement.remove()">×</button></div>`;
 }
-function clientModal(id){
+function qSelChange(sel){
+  const inp=sel.parentElement.querySelector('.qS');
+  if(sel.value==='__custom__'){inp.style.display='';inp.focus()}
+  else{inp.style.display='none';inp.value=sel.value}
+}
+async function clientModal(id){
   const c=id?CACHE.clients.find(x=>x.id===id):null;
-  const svcOpts=[...new Set([...META.services,...(CACHE.clients||[]).flatMap(x=>x.quotas.map(q=>q.service))])].filter(Boolean);
+  let _sv={services:[]};try{_sv=await api('/services')}catch(e){}
+  QSVC_OPTS=[...new Set([...(_sv.services||[]).map(x=>x.name),...(CACHE.clients||[]).flatMap(x=>x.quotas.map(q=>q.service))])].filter(Boolean);
+  if(!QSVC_OPTS.length)QSVC_OPTS=META.services;
   openModal(`
    <button class="x" onclick="closeModal()">×</button>
    <h2 class="serif">${id?'Edit client':'Add client'}</h2>
-   <datalist id="svcList2">${svcOpts.map(s=>`<option value="${esc(s)}">`).join('')}</datalist>
    <label>Brand / Company name</label><input id="cName" value="${esc(c?.name||'')}" placeholder="e.g. Cafe Aroma">
    <div class="mrow"><div><label>Package</label><input id="cPkg" value="${esc(c?.package||'')}" placeholder="e.g. SMM Package 3"></div>
    ${ME.role==='owner'?`<div><label>Monthly fee (₹)</label><input id="cFee" type="number" value="${c?.fee||''}"></div>`:''}</div>
@@ -712,6 +817,46 @@ async function saveClient(id){
   }catch(e){toast(e)}
 }
 async function delClient(id){if(!confirm('Delete client and all their data?'))return;await api('/clients/'+id,{method:'DELETE'});closeModal();toast('Deleted');renderClients()}
+
+/* ---------- SERVICES PAGE ---------- */
+async function renderServicesPage(){
+  const m=$('#main');m.innerHTML='<div class="hsub">Loading…</div>';
+  let j={services:[]};
+  try{j=await api('/services')}catch(e){}
+  const canEdit=ME.role!=='employee';
+  m.innerHTML=`
+   <div class="topbar"><div>
+     <div class="crumb" style="cursor:pointer" onclick="renderClients()">‹ Back to clients</div>
+     <div class="h1 serif">Your <span class="it">services.</span></div>
+     <div class="hsub">This list powers the Service dropdown in tasks & client quotas</div></div></div>
+   ${canEdit?`
+   <div class="card" style="margin-bottom:14px">
+     <div class="mrow" style="align-items:flex-end">
+       <div><label>Add a service</label><input id="spNew" placeholder="e.g. Podcast, Drone Shoot, 3D Walkthrough"></div>
+       <div style="flex:0"><button class="btn" onclick="spAdd()">Add</button></div>
+     </div>
+     <div class="hsub" style="margin-top:8px">Tip: services typed manually inside a task are added here automatically.</div>
+   </div>`:''}
+   <div class="card">
+     ${(j.services||[]).length?(j.services||[]).map(x=>`
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:11px 4px;border-bottom:1px solid var(--line)">
+        <b style="font-size:14px">${esc(x.name)}</b>
+        ${canEdit?`<button style="color:var(--red);font-size:16px;padding:2px 8px" onclick="spDel(${x.id})">×</button>`:''}
+      </div>`).join(''):'<div class="hsub">No services yet.</div>'}
+   </div>`;
+  const inp=document.getElementById('spNew');
+  if(inp)inp.addEventListener('keydown',e=>{if(e.key==='Enter')spAdd()});
+}
+async function spAdd(){
+  const name=document.getElementById('spNew').value.trim();
+  if(!name)return toast('Type a service name');
+  try{await api('/services',{method:'POST',body:JSON.stringify({name})});
+    toast('Added ✓');renderServicesPage()}catch(e){toast(e)}
+}
+async function spDel(id){
+  if(!confirm('Remove this service from the list? (Existing tasks keep their names)'))return;
+  try{await api('/services/'+id,{method:'DELETE'});toast('Removed');renderServicesPage()}catch(e){toast(e)}
+}
 
 /* ---------- UPDATES ---------- */
 async function renderUpdates(){
@@ -812,6 +957,102 @@ async function delMember(id){
   catch(e){toast(e)}
 }
 
+/* ---------- Work report downloads ---------- */
+function saveBlobFile(b64, filename, mime){
+  if(window.BFBridge&&BFBridge.saveFile){BFBridge.saveFile(b64, filename, mime);return}
+  const bytes=atob(b64);const arr=new Uint8Array(bytes.length);
+  for(let i=0;i<bytes.length;i++)arr[i]=bytes.charCodeAt(i);
+  const blob=new Blob([arr],{type:mime});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);a.download=filename;
+  document.body.appendChild(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(a.href),30000);
+  toast('Downloaded: '+filename);
+}
+async function downloadReportXlsx(){
+  try{
+    toast('Building Excel…');
+    const j=await api('/report/work.xlsx');
+    saveBlobFile(j.b64, j.filename, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+  }catch(e){toast(e)}
+}
+let JSPDF_READY=false;
+function loadJsPDF(){
+  return new Promise((res,rej)=>{
+    if(JSPDF_READY||window.jspdf)return res();
+    const sc=document.createElement('script');
+    sc.src='jspdf.umd.min.js';
+    sc.onload=()=>{JSPDF_READY=true;res()};
+    sc.onerror=()=>rej('PDF library failed to load');
+    document.head.appendChild(sc);
+  });
+}
+async function downloadReportPdf(){
+  try{
+    toast('Building PDF…');
+    await loadJsPDF();
+    const r=await api('/report/work');
+    const {jsPDF}=window.jspdf;
+    const doc=new jsPDF('p','pt','a4');
+    const W=595,M=40;const ORANGE=[255,90,31],INK=[34,37,44],MUT=[130,135,145],LINE=[228,224,216];
+    let y=48;
+    doc.setFillColor(...ORANGE);doc.rect(0,0,W,6,'F');
+    doc.setFont('helvetica','bold');doc.setFontSize(18);doc.setTextColor(...INK);
+    doc.text(r.company+' — Work Report',M,y);y+=18;
+    doc.setFont('helvetica','normal');doc.setFontSize(10);doc.setTextColor(...MUT);
+    doc.text(r.month+'  ·  generated '+r.generated,M,y);y+=24;
+    // totals strip
+    const T=r.totals;
+    const boxes=[['Total',T.total_tasks],['Done',T.done],['Open',T.open],['Overdue',T.overdue],['Delivered/mo',T.delivered_month]];
+    const bw=(W-2*M-4*8)/5;
+    boxes.forEach((b,i)=>{
+      const bx=M+i*(bw+8);
+      doc.setFillColor(247,244,238);doc.roundedRect(bx,y,bw,44,5,5,'F');
+      doc.setFont('helvetica','bold');doc.setFontSize(15);doc.setTextColor(...(b[0]==='Overdue'&&b[1]>0?[214,69,69]:INK));
+      doc.text(String(b[1]),bx+bw/2,y+20,{align:'center'});
+      doc.setFont('helvetica','normal');doc.setFontSize(7);doc.setTextColor(...MUT);
+      doc.text(b[0].toUpperCase(),bx+bw/2,y+34,{align:'center'});
+    });
+    y+=62;
+    function table(title,heads,rows,widths){
+      if(y>720){doc.addPage();y=48}
+      doc.setFont('helvetica','bold');doc.setFontSize(12);doc.setTextColor(...INK);
+      doc.text(title,M,y);y+=12;
+      doc.setFillColor(...ORANGE);doc.rect(M,y,W-2*M,18,'F');
+      doc.setFontSize(8);doc.setTextColor(255,255,255);
+      let x=M;
+      heads.forEach((h,i)=>{doc.text(h,x+5,y+12);x+=widths[i]});
+      y+=18;
+      doc.setFont('helvetica','normal');doc.setTextColor(...INK);
+      rows.forEach((row,ri)=>{
+        const cells=row.map((c,i)=>doc.splitTextToSize(String(c??''),widths[i]-10));
+        const rh=Math.max(14,...cells.map(c=>c.length*10+5));
+        if(y+rh>790){doc.addPage();y=48}
+        if(ri%2)doc.setFillColor(249,246,241),doc.rect(M,y,W-2*M,rh,'F');
+        let cx=M;
+        cells.forEach((c,i)=>{doc.text(c,cx+5,y+11);cx+=widths[i]});
+        y+=rh;
+      });
+      doc.setDrawColor(...LINE);doc.line(M,y,W-M,y);y+=22;
+    }
+    table('Employee-wise summary',['Name','Role','Delivered','Open','Overdue','Breakdown'],
+      r.employees.map(e=>[e.name,e.title||e.role,e.delivered,e.open,e.overdue,e.services]),
+      [95,80,55,40,50,195]);
+    table('Client quota progress',['Client','Service','Done','Target','%'],
+      r.clients.map(c=>[c.client,c.service,c.done,c.target,c.pct+'%']),
+      [150,140,70,75,80]);
+    table('All tasks',['Task','Client','Assignee','Status','Due'],
+      r.tasks.map(t=>[t.title+(t.qty>1?' ×'+t.qty:''),t.client||'',t.assignee||'',t.status,t.due||'']),
+      [185,95,90,70,75]);
+    doc.setFontSize(8);doc.setTextColor(...MUT);
+    doc.text('Generated with BuzzFlow — Agency OS',M,812);
+    const ab=doc.output('arraybuffer');const bytes=new Uint8Array(ab);
+    let bin='';const CH=0x8000;
+    for(let i=0;i<bytes.length;i+=CH)bin+=String.fromCharCode.apply(null,bytes.subarray(i,i+CH));
+    saveBlobFile(btoa(bin),'BuzzFlow-Report-'+new Date().toISOString().slice(0,10)+'.pdf','application/pdf');
+  }catch(e){toast(typeof e==='string'?e:'PDF failed: '+e.message)}
+}
+
 /* ---------- WhatsApp report ---------- */
 async function sendWhatsAppReport(){
   try{
@@ -862,6 +1103,16 @@ async function renderSettings(){
      </div>
    </div>
 
+   <div class="sec-t">🛠 Services <span class="sm">this list feeds every dropdown — tasks & client quotas</span></div>
+   <div class="card">
+     <div id="svcChips" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px"></div>
+     <div class="mrow" style="align-items:flex-end">
+       <div><label>Add a service</label><input id="newSvc" placeholder="e.g. Podcast, 3D Walkthrough"></div>
+       <div style="flex:0"><button class="btn" onclick="addService()">Add</button></div>
+     </div>
+     <div class="hsub" style="margin-top:8px">Tip: anything typed manually in a task also lands here automatically.</div>
+   </div>
+
    <div class="sec-t">🤝 Invite your team <span class="sm">they scan → they join your workspace</span></div>
    <div class="card">
      <div style="display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap">
@@ -885,6 +1136,28 @@ async function renderSettings(){
    <div class="sec-t">👑 Ownership</div>
    <div class="card"><div class="hsub">You (<b>${esc(ME.name)}</b>) are the one and only Owner of this workspace. The Owner role can never be taken by anyone else — new members always join as Employees, and only you can promote them to Social Media Manager from the Team section.</div></div>`;
   drawInviteQR(inv);
+  loadServiceChips();
+}
+async function loadServiceChips(){
+  const box=document.getElementById('svcChips');
+  if(!box)return;
+  try{
+    const j=await api('/services');
+    box.innerHTML=(j.services||[]).map(x=>
+      `<span style="display:inline-flex;align-items:center;gap:6px;background:var(--chipbg);border:1px solid var(--line);border-radius:20px;padding:6px 12px;font-size:12.5px">${esc(x.name)}
+       <button style="color:var(--red);font-size:14px;line-height:1" onclick="delService(${x.id})">×</button></span>`).join('')
+      ||'<span class="hsub">No services yet — add your first below.</span>';
+  }catch(e){box.innerHTML='<span class="hsub">Could not load services</span>'}
+}
+async function addService(){
+  const name=document.getElementById('newSvc').value.trim();
+  if(!name)return toast('Type a service name');
+  try{await api('/services',{method:'POST',body:JSON.stringify({name})});
+    document.getElementById('newSvc').value='';toast('Added ✓');loadServiceChips();
+  }catch(e){toast(e)}
+}
+async function delService(id){
+  try{await api('/services/'+id,{method:'DELETE'});toast('Removed');loadServiceChips()}catch(e){toast(e)}
 }
 function inviteUrl(inv){
   const isFile=(location.protocol==='file:'||!location.host);

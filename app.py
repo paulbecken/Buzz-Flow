@@ -4,8 +4,16 @@
 - Every workspace's data (team, clients, tasks, updates, logo, report number)
   is completely walled off from every other workspace.
 """
-import os, sqlite3, hashlib, secrets, json
-from datetime import datetime, date, timedelta
+import os, sqlite3, hashlib, secrets, json, io
+from datetime import datetime, date, timedelta, timezone
+
+IST = timezone(timedelta(hours=5, minutes=30))
+
+def now_ist():
+    return datetime.now(IST)
+
+def today_ist():
+    return now_ist().date()
 from functools import wraps
 from flask import Flask, request, jsonify, session, send_from_directory, g
 
@@ -42,7 +50,7 @@ class PgConn:
         def __iter__(self):
             return iter(self.cur.fetchall())
 
-    _ID_TABLES = ('workspaces', 'users', 'clients', 'quotas', 'tasks', 'updates')
+    _ID_TABLES = ('workspaces', 'users', 'clients', 'quotas', 'tasks', 'updates', 'services')
 
     def execute(self, sql, params=()):
         q = sql.replace('?', '%s')
@@ -132,6 +140,9 @@ SCHEMA = """
     CREATE TABLE IF NOT EXISTS wsettings(
       workspace_id INTEGER NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
       key TEXT NOT NULL, value TEXT, PRIMARY KEY(workspace_id, key));
+    CREATE TABLE IF NOT EXISTS services(
+      id {PK}, workspace_id INTEGER NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+      name TEXT NOT NULL);
 """
 
 def init_db():
@@ -191,7 +202,7 @@ def token_auth():
 def issue_token(uid):
     token = secrets.token_hex(24)
     db().execute("INSERT INTO tokens(token,user_id,created_at) VALUES(?,?,?)",
-                 (token, uid, datetime.now().isoformat()))
+                 (token, uid, now_ist().isoformat()))
     db().commit()
     return token
 
@@ -246,7 +257,7 @@ def signup():
             return jsonify(error="Set a team invite code (min 4 characters)"), 400
         role, title = 'owner', (title or 'Owner')
         cur = db().execute("INSERT INTO workspaces(name,invite_code,created_at) VALUES(?,?,?)",
-                           (ws_name, code, datetime.now().isoformat()))
+                           (ws_name, code, now_ist().isoformat()))
         ws = cur.lastrowid
     else:  # join
         p = parse_join_token(d.get('join_token') or '')
@@ -262,7 +273,7 @@ def signup():
     try:
         cur = db().execute("""INSERT INTO users(workspace_id,name,email,salt,pw,role,title,created_at)
                               VALUES(?,?,?,?,?,?,?,?)""",
-                           (ws, name, email, salt, hashpw(pw, salt), role, title, datetime.now().isoformat()))
+                           (ws, name, email, salt, hashpw(pw, salt), role, title, now_ist().isoformat()))
         db().commit()
     except Exception as ex:
         if not _is_unique_violation(ex):
@@ -344,16 +355,16 @@ def company_put():
 @login_required
 def dashboard():
     d = db(); role = session['role']; uid = session['uid']; ws = wsid()
-    month = date.today().strftime('%Y-%m')
+    month = today_ist().strftime('%Y-%m')
     where_emp = "" if role in ('owner','admin') else f" AND t.assignee_id={uid}"
     counts = {r['status']: r['n'] for r in d.execute(
         f"SELECT status, COUNT(*) n FROM tasks t WHERE t.workspace_id=?{where_emp} GROUP BY status", (ws,))}
     overdue = d.execute(f"""SELECT COUNT(*) n FROM tasks t WHERE t.workspace_id=? AND t.status!='done'
-                            AND t.due < ?{where_emp}""", (ws, date.today().isoformat())).fetchone()['n']
+                            AND t.due < ?{where_emp}""", (ws, today_ist().isoformat())).fetchone()['n']
     total = sum(counts.values()) or 1
     done = counts.get('done', 0)
     out = dict(counts=counts, overdue=overdue, completion=round(done*100/total),
-               month=date.today().strftime('%B %Y'))
+               month=today_ist().strftime('%B %Y'))
     if role in ('owner','admin'):
         out['clients'] = d.execute("SELECT COUNT(*) n FROM clients WHERE workspace_id=? AND status='active'", (ws,)).fetchone()['n']
         out['team'] = d.execute("SELECT COUNT(*) n FROM users WHERE workspace_id=? AND active=1", (ws,)).fetchone()['n']
@@ -375,7 +386,7 @@ def plural(s):
 @app.get('/api/insights')
 @login_required
 def insights():
-    d = db(); ws = wsid(); today = date.today(); month = today.strftime('%Y-%m')
+    d = db(); ws = wsid(); today = today_ist(); month = today.strftime('%Y-%m')
     days_in_month = (date(today.year + (today.month==12), (today.month%12)+1, 1) - timedelta(days=1)).day
     pace = today.day / days_in_month
     tips = []
@@ -401,7 +412,7 @@ def insights():
         WHERE t.workspace_id=? AND t.status IN('todo','doing','review') GROUP BY u.id ORDER BY n DESC""", (ws,)).fetchall()
     if len(rows) >= 2 and rows[0]['n'] >= rows[-1]['n'] * 2 and rows[0]['n'] >= 4:
         tips.append(dict(level="amber", icon="⚖️", text=f"Workload imbalance: {rows[0]['name']} has {rows[0]['n']} open tasks vs {rows[-1]['name']}'s {rows[-1]['n']}. Consider redistributing."))
-    yest = (datetime.now() - timedelta(days=1)).date().isoformat()
+    yest = (now_ist() - timedelta(days=1)).date().isoformat()
     quiet = d.execute("""SELECT name FROM users WHERE workspace_id=? AND role='employee' AND active=1 AND id NOT IN
         (SELECT DISTINCT user_id FROM updates WHERE workspace_id=? AND substr(created_at,1,10) >= ?)""",
         (ws, ws, yest)).fetchall()
@@ -432,7 +443,7 @@ def daily_report():
         return jsonify(error="Set the WhatsApp report number first (Settings → Company profile)"), 400
     if len(phone) == 10:
         phone = '91' + phone
-    today = date.today(); tstr = today.isoformat(); month = today.strftime('%Y-%m')
+    today = today_ist(); tstr = today.isoformat(); month = today.strftime('%Y-%m')
     nice = today.strftime('%d %b %Y')
     co = company.get('name') or 'BuzzFlow'
     L = [f"📊 *{co} Daily Report — {nice}*", ""]
@@ -487,7 +498,7 @@ def daily_report():
 @login_required
 def calendar_data():
     d = db(); ws = wsid()
-    month = request.args.get('month') or date.today().strftime('%Y-%m')
+    month = request.args.get('month') or today_ist().strftime('%Y-%m')
     due = d.execute("""SELECT t.id,t.title,t.status,t.qty,t.service,t.due AS "day",u.name assignee,c.name client
         FROM tasks t LEFT JOIN users u ON u.id=t.assignee_id LEFT JOIN clients c ON c.id=t.client_id
         WHERE t.workspace_id=? AND substr(t.due,1,7)=?""", (ws, month)).fetchall()
@@ -498,7 +509,7 @@ def calendar_data():
         FROM updates up JOIN users u ON u.id=up.user_id LEFT JOIN clients c ON c.id=up.client_id
         WHERE up.workspace_id=? AND substr(up.created_at,1,7)=?""", (ws, month)).fetchall()
     return jsonify(month=month, due=[dict(r) for r in due], done=[dict(r) for r in done],
-                   updates=[dict(r) for r in ups], today=date.today().isoformat())
+                   updates=[dict(r) for r in ups], today=today_ist().isoformat())
 
 # ---------------- clients ----------------
 def clean_service(s):
@@ -508,7 +519,7 @@ def clean_service(s):
 @app.get('/api/clients')
 @login_required
 def clients_list():
-    d = db(); ws = wsid(); month = date.today().strftime('%Y-%m')
+    d = db(); ws = wsid(); month = today_ist().strftime('%Y-%m')
     rows = d.execute("SELECT * FROM clients WHERE workspace_id=? ORDER BY status='active' DESC, name", (ws,)).fetchall()
     out = []
     for c in rows:
@@ -533,12 +544,14 @@ def clients_add():
     cur = db().execute("""INSERT INTO clients(workspace_id,name,package,fee,contact_name,contact_phone,notes,created_at)
                           VALUES(?,?,?,?,?,?,?,?)""",
         (wsid(), d['name'].strip(), d.get('package',''), int(d.get('fee') or 0), d.get('contact_name',''),
-         d.get('contact_phone',''), d.get('notes',''), datetime.now().isoformat()))
+         d.get('contact_phone',''), d.get('notes',''), now_ist().isoformat()))
     cid = cur.lastrowid
     for q in d.get('quotas', []):
         if int(q.get('target') or 0) > 0:
+            svc = clean_service(q.get('service'))
+            learn_service(svc)
             db().execute("INSERT INTO quotas(client_id,service,monthly_target) VALUES(?,?,?)",
-                         (cid, clean_service(q.get('service')), int(q['target'])))
+                         (cid, svc, int(q['target'])))
     db().commit()
     return jsonify(id=cid)
 
@@ -563,6 +576,23 @@ def clients_edit(cid):
     db().commit()
     return jsonify(ok=True)
 
+@app.post('/api/clients/<int:cid>/quotas')
+@role_required('owner','admin')
+def quota_upsert(cid):
+    if not own_client(cid): return jsonify(error="not found"), 404
+    d = request.json or {}
+    svc = clean_service(d.get('service'))
+    target = int(d.get('target') or 0)
+    if target <= 0: return jsonify(error="Enter a monthly target"), 400
+    learn_service(svc)
+    ex = db().execute("SELECT id FROM quotas WHERE client_id=? AND LOWER(service)=LOWER(?)", (cid, svc)).fetchone()
+    if ex:
+        db().execute("UPDATE quotas SET monthly_target=? WHERE id=?", (target, ex['id']))
+    else:
+        db().execute("INSERT INTO quotas(client_id,service,monthly_target) VALUES(?,?,?)", (cid, svc, target))
+    db().commit()
+    return jsonify(ok=True)
+
 @app.delete('/api/clients/<int:cid>')
 @role_required('owner')
 def clients_del(cid):
@@ -581,9 +611,9 @@ def tasks_list():
     args = [wsid()]
     if request.args.get('mine') == '1':
         q += " AND t.assignee_id=?"; args.append(session['uid'])
-    q += " ORDER BY CASE t.priority WHEN 'urgent' THEN 0 WHEN 'high' THEN 1 WHEN 'medium' THEN 2 ELSE 3 END, t.due"
+    q += " ORDER BY CASE WHEN t.due IS NULL OR t.due='' THEN 1 ELSE 0 END, t.due, CASE t.priority WHEN 'urgent' THEN 0 WHEN 'high' THEN 1 WHEN 'medium' THEN 2 ELSE 3 END"
     rows = [dict(r) for r in d.execute(q, args).fetchall()]
-    return jsonify(tasks=rows, today=date.today().isoformat())
+    return jsonify(tasks=rows, today=today_ist().isoformat())
 
 @app.post('/api/tasks')
 @login_required
@@ -599,12 +629,13 @@ def tasks_add():
         au = db().execute("SELECT 1 FROM users WHERE id=? AND workspace_id=?", (aid, wsid())).fetchone()
         if not au: return jsonify(error="assignee not found"), 404
     status = d.get('status','todo')
-    done_at = datetime.now().isoformat() if status == 'done' else None
+    done_at = now_ist().isoformat() if status == 'done' else None
+    learn_service(clean_service(d.get('service')))
     cur = db().execute("""INSERT INTO tasks(workspace_id,title,client_id,service,qty,assignee_id,status,priority,due,notes,created_by,created_at,done_at)
         VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)""",
         (wsid(), d['title'].strip(), cid, clean_service(d.get('service')), int(d.get('qty') or 1),
          aid, status, d.get('priority','medium'), d.get('due'),
-         d.get('notes',''), session['uid'], datetime.now().isoformat(), done_at))
+         d.get('notes',''), session['uid'], now_ist().isoformat(), done_at))
     db().commit()
     return jsonify(id=cur.lastrowid)
 
@@ -621,14 +652,16 @@ def tasks_edit(tid):
               (['assignee_id'] if session['role'] in ('owner','admin') else [])
     for k in allowed:
         if k in d: fields[k] = d[k]
-    if 'service' in fields: fields['service'] = clean_service(fields['service'])
+    if 'service' in fields:
+        fields['service'] = clean_service(fields['service'])
+        learn_service(fields['service'])
     if fields.get('client_id') and not own_client(fields['client_id']):
         return jsonify(error="client not found"), 404
     if fields.get('assignee_id'):
         au = conn.execute("SELECT 1 FROM users WHERE id=? AND workspace_id=?", (fields['assignee_id'], wsid())).fetchone()
         if not au: return jsonify(error="assignee not found"), 404
     if fields.get('status') == 'done' and t['status'] != 'done':
-        fields['done_at'] = datetime.now().isoformat()
+        fields['done_at'] = now_ist().isoformat()
     if fields.get('status') and fields['status'] != 'done' and t['status'] == 'done':
         fields['done_at'] = None
     if fields:
@@ -662,7 +695,7 @@ def updates_add():
     cid = d.get('client_id')
     if cid and not own_client(cid): return jsonify(error="client not found"), 404
     db().execute("INSERT INTO updates(workspace_id,user_id,client_id,text,created_at) VALUES(?,?,?,?,?)",
-                 (wsid(), session['uid'], cid, d['text'].strip(), datetime.now().isoformat()))
+                 (wsid(), session['uid'], cid, d['text'].strip(), now_ist().isoformat()))
     db().commit()
     return jsonify(ok=True)
 
@@ -677,7 +710,7 @@ def team_list():
     for u in rows:
         open_n = d.execute("SELECT COUNT(*) n FROM tasks WHERE assignee_id=? AND status!='done'", (u['id'],)).fetchone()['n']
         done_m = d.execute("SELECT COALESCE(SUM(qty),0) n FROM tasks WHERE assignee_id=? AND status='done' AND substr(done_at,1,7)=?",
-                           (u['id'], date.today().strftime('%Y-%m'))).fetchone()['n']
+                           (u['id'], today_ist().strftime('%Y-%m'))).fetchone()['n']
         out.append(dict(id=u['id'], name=u['name'], email=u['email'], role=u['role'], title=u['title'],
                         active=u['active'], open_tasks=open_n, delivered_month=done_m))
     return jsonify(team=out)
@@ -693,7 +726,7 @@ def team_add():
         db().execute("""INSERT INTO users(workspace_id,name,email,salt,pw,role,title,created_at)
                         VALUES(?,?,?,?,?,?,?,?)""",
             (wsid(), d['name'].strip(), d['email'].strip().lower(), salt, hashpw(d['password'], salt),
-             'employee', d.get('title',''), datetime.now().isoformat()))
+             'employee', d.get('title',''), now_ist().isoformat()))
         db().commit()
     except Exception as ex:
         if not _is_unique_violation(ex):
@@ -745,6 +778,145 @@ def team_del(uid):
         return jsonify(error="only the owner can delete a manager"), 403
     conn.execute("DELETE FROM users WHERE id=?", (uid,))
     conn.commit()
+    return jsonify(ok=True)
+
+# ---------------- work report (data + excel) ----------------
+def build_report_data():
+    d = db(); ws = wsid()
+    month = today_ist().strftime('%Y-%m')
+    month_name = today_ist().strftime('%B %Y')
+    # per-employee summary
+    emps = d.execute("""SELECT id,name,title,role FROM users WHERE workspace_id=? AND active=1
+                        ORDER BY role='owner' DESC, name""", (ws,)).fetchall()
+    emp_rows = []
+    for e in emps:
+        done_m = d.execute("""SELECT COALESCE(SUM(qty),0) n FROM tasks WHERE assignee_id=? AND status='done'
+                              AND substr(done_at,1,7)=?""", (e['id'], month)).fetchone()['n']
+        open_n = d.execute("SELECT COUNT(*) n FROM tasks WHERE assignee_id=? AND status!='done'", (e['id'],)).fetchone()['n']
+        overdue_n = d.execute("""SELECT COUNT(*) n FROM tasks WHERE assignee_id=? AND status!='done'
+                                 AND due < ?""", (e['id'], today_ist().isoformat())).fetchone()['n']
+        svc = d.execute("""SELECT service, SUM(qty) n FROM tasks WHERE assignee_id=? AND status='done'
+                           AND substr(done_at,1,7)=? GROUP BY service ORDER BY n DESC""", (e['id'], month)).fetchall()
+        emp_rows.append(dict(name=e['name'], title=e['title'] or '', role=e['role'],
+                             delivered=done_m, open=open_n, overdue=overdue_n,
+                             services=', '.join(f"{r['n']} {r['service']}" for r in svc) or '—'))
+    # per-client progress
+    cli_rows = []
+    for c in d.execute("SELECT * FROM clients WHERE workspace_id=? AND status='active' ORDER BY name", (ws,)).fetchall():
+        for q in d.execute("SELECT service, monthly_target FROM quotas WHERE client_id=?", (c['id'],)).fetchall():
+            done = d.execute("""SELECT COALESCE(SUM(qty),0) n FROM tasks WHERE client_id=? AND service=?
+                AND status='done' AND substr(done_at,1,7)=?""", (c['id'], q['service'], month)).fetchone()['n']
+            cli_rows.append(dict(client=c['name'], service=q['service'],
+                                 done=done, target=q['monthly_target'],
+                                 pct=round(done*100/q['monthly_target']) if q['monthly_target'] else 0))
+    # all tasks detail
+    task_rows = [dict(r) for r in d.execute("""SELECT t.title, t.service, t.qty, t.status, t.priority, t.due,
+        substr(t.done_at,1,10) done_on, u.name assignee, c.name client
+        FROM tasks t LEFT JOIN users u ON u.id=t.assignee_id LEFT JOIN clients c ON c.id=t.client_id
+        WHERE t.workspace_id=? ORDER BY CASE WHEN t.due IS NULL THEN 1 ELSE 0 END, t.due""", (ws,)).fetchall()]
+    totals = dict(
+        total_tasks=len(task_rows),
+        done=len([t for t in task_rows if t['status']=='done']),
+        open=len([t for t in task_rows if t['status']!='done']),
+        overdue=len([t for t in task_rows if t['status']!='done' and t['due'] and t['due'] < today_ist().isoformat()]),
+        delivered_month=sum(e['delivered'] for e in emp_rows))
+    raw = get_ws_setting(ws, 'company')
+    co = json.loads(raw) if raw else {}
+    return dict(month=month_name, company=co.get('name') or 'BuzzFlow',
+                generated=now_ist().strftime('%d %b %Y, %I:%M %p IST'),
+                totals=totals, employees=emp_rows, clients=cli_rows, tasks=task_rows)
+
+@app.get('/api/report/work')
+@role_required('owner','admin')
+def work_report_data():
+    return jsonify(build_report_data())
+
+@app.get('/api/report/work.xlsx')
+@role_required('owner','admin')
+def work_report_xlsx():
+    import base64
+    from openpyxl import Workbook
+    from openpyxl.styles import Font, PatternFill, Alignment
+    r = build_report_data()
+    wb = Workbook()
+    head_fill = PatternFill('solid', fgColor='FF5A1F')
+    head_font = Font(color='FFFFFF', bold=True)
+    def sheet(ws_, title, headers, rows):
+        ws_.title = title
+        ws_.append(headers)
+        for cell in ws_[1]:
+            cell.fill = head_fill; cell.font = head_font
+            cell.alignment = Alignment(horizontal='center')
+        for row in rows: ws_.append(row)
+        for col in ws_.columns:
+            width = max(len(str(c.value or '')) for c in col) + 3
+            ws_.column_dimensions[col[0].column_letter].width = min(width, 44)
+    s1 = wb.active
+    sheet(s1, 'Summary',
+          ['Report', 'Month', 'Generated', 'Total tasks', 'Done', 'Open', 'Overdue', 'Delivered (month)'],
+          [[r['company'] + ' — Work Report', r['month'], r['generated'],
+            r['totals']['total_tasks'], r['totals']['done'], r['totals']['open'],
+            r['totals']['overdue'], r['totals']['delivered_month']]])
+    sheet(wb.create_sheet(), 'Employees',
+          ['Name', 'Title', 'Role', 'Delivered this month', 'Open tasks', 'Overdue', 'Work breakdown'],
+          [[e['name'], e['title'], e['role'], e['delivered'], e['open'], e['overdue'], e['services']] for e in r['employees']])
+    sheet(wb.create_sheet(), 'Client quotas',
+          ['Client', 'Service', 'Done', 'Target', '% complete'],
+          [[c['client'], c['service'], c['done'], c['target'], str(c['pct']) + '%'] for c in r['clients']])
+    sheet(wb.create_sheet(), 'All tasks',
+          ['Task', 'Client', 'Service', 'Qty', 'Assignee', 'Status', 'Priority', 'Due', 'Done on'],
+          [[t['title'], t['client'] or '', t['service'], t['qty'], t['assignee'] or '',
+            t['status'], t['priority'], t['due'] or '', t['done_on'] or ''] for t in r['tasks']])
+    buf = io.BytesIO()
+    wb.save(buf)
+    return jsonify(filename=f"BuzzFlow-Report-{today_ist().isoformat()}.xlsx",
+                   b64=base64.b64encode(buf.getvalue()).decode())
+
+# ---------------- services (per-workspace list) ----------------
+def ws_services():
+    if not get_ws_setting(wsid(), 'svc_seeded'):
+        for n in SERVICE_TYPES:
+            ex = db().execute("SELECT 1 FROM services WHERE workspace_id=? AND LOWER(name)=LOWER(?)",
+                              (wsid(), n)).fetchone()
+            if not ex:
+                db().execute("INSERT INTO services(workspace_id,name) VALUES(?,?)", (wsid(), n))
+        db().commit()
+        set_ws_setting(wsid(), 'svc_seeded', '1')
+    return db().execute("SELECT id,name FROM services WHERE workspace_id=? ORDER BY name", (wsid(),)).fetchall()
+
+def learn_service(name):
+    """Auto-add manually typed services to the workspace list."""
+    name = (name or '').strip()[:40]
+    if not name or name == 'Other':
+        return
+    ex = db().execute("SELECT 1 FROM services WHERE workspace_id=? AND LOWER(name)=LOWER(?)",
+                      (wsid(), name)).fetchone()
+    if not ex:
+        db().execute("INSERT INTO services(workspace_id,name) VALUES(?,?)", (wsid(), name))
+        db().commit()
+
+@app.get('/api/services')
+@login_required
+def services_list():
+    return jsonify(services=[dict(r) for r in ws_services()])
+
+@app.post('/api/services')
+@role_required('owner','admin')
+def services_add():
+    name = ((request.json or {}).get('name') or '').strip()[:40]
+    if not name: return jsonify(error="name required"), 400
+    ex = db().execute("SELECT 1 FROM services WHERE workspace_id=? AND LOWER(name)=LOWER(?)", (wsid(), name)).fetchone()
+    if ex: return jsonify(error="Service already exists"), 400
+    cur = db().execute("INSERT INTO services(workspace_id,name) VALUES(?,?)", (wsid(), name))
+    db().commit()
+    return jsonify(id=cur.lastrowid)
+
+@app.delete('/api/services/<int:sid>')
+@role_required('owner','admin')
+def services_del(sid):
+    r = db().execute("SELECT 1 FROM services WHERE id=? AND workspace_id=?", (sid, wsid())).fetchone()
+    if not r: return jsonify(error="not found"), 404
+    db().execute("DELETE FROM services WHERE id=?", (sid,)); db().commit()
     return jsonify(ok=True)
 
 @app.get('/api/meta')
