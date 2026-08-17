@@ -1016,16 +1016,21 @@ async function downloadReportPdf(){
       doc.text(txt.toUpperCase(),M+10,y+14);
       y+=28;
     };
-    /* ===== 1. MONTHLY WORK — grid, client left, services right, mini bar ===== */
+    /* ===== 1. MONTHLY WORK — grid with % after bar + pending/extra columns ===== */
     banner('Monthly Work — Client Wise');
-    // table head
-    const c1=M, c2=M+120, c3=M+250, c4=M+300, c5=M+352, c6=W-M-52;
+    const c1=M, c2=M+105, c3=M+205, c4=M+243, c5=M+287, c6=M+402, c7=W-M-58;
+    const BARW=72;
     doc.setFillColor(60,64,72);doc.rect(M,y,W-2*M,16,'F');
     doc.setFont('helvetica','bold');doc.setFontSize(7.5);doc.setTextColor(255,255,255);
     doc.text('CLIENT',c1+6,y+11);doc.text('SERVICE',c2+4,y+11);
-    doc.text('DONE',c3+4,y+11);doc.text('TARGET',c4+4,y+11);
-    doc.text('PROGRESS',c5+4,y+11);doc.text('STATUS',c6+4,y+11);
+    doc.text('DONE',c3+2,y+11);doc.text('TARGET',c4+2,y+11);
+    doc.text('PROGRESS',c5+2,y+11);
+    doc.text('PENDING',c6+2,y+11);doc.text('EXTRA',c7+2,y+11);
     y+=16;
+    const singular=(n,svc)=>{
+      let base=svc.replace(/s$/i,'');
+      return n+' '+(n===1?base:base+'s');
+    };
     const byClient={};
     (r.clients||[]).forEach(c=>{(byClient[c.client]=byClient[c.client]||[]).push(c)});
     let zi=0;
@@ -1035,39 +1040,50 @@ async function downloadReportPdf(){
         npage(15);
         if(zi%2)doc.setFillColor(...ZEBRA),doc.rect(M,y,W-2*M,14,'F');
         zi++;
-        // client name only on first row of group — highlighted
         if(qi===0){
           doc.setFont('helvetica','bold');doc.setFontSize(8.5);doc.setTextColor(...ORANGE);
-          doc.text(doc.splitTextToSize(cn,110)[0],c1+6,y+10);
+          doc.text(doc.splitTextToSize(cn,95)[0],c1+6,y+10);
         }
         doc.setFont('helvetica','normal');doc.setFontSize(8);doc.setTextColor(...INK);
-        doc.text(doc.splitTextToSize(q.service,125)[0],c2+4,y+10);
-        if(q.done!==null&&q.done!==undefined)doc.text(String(q.done),c3+4,y+10);
-        doc.text(q.target?String(q.target):'—',c4+4,y+10);
-        // mini progress bar
+        doc.text(doc.splitTextToSize(q.service,95)[0],c2+4,y+10);
+        if(q.done!==null&&q.done!==undefined)doc.text(String(q.done),c3+2,y+10);
+        doc.text(q.target?String(q.target):'—',c4+2,y+10);
         if(q.target){
-          const bw=100,frac=Math.min(1,q.done/q.target);
-          doc.setFillColor(232,228,220);doc.rect(c5+4,y+3.5,bw,7,'F');
-          doc.setFillColor(...(q.done>=q.target?GREEN:ORANGE));
-          if(frac>0)doc.rect(c5+4,y+3.5,Math.max(3,bw*frac),7,'F');
+          const frac=Math.min(1,q.done/q.target);
+          const complete=q.done>=q.target;
+          doc.setFillColor(232,228,220);doc.rect(c5+2,y+3.5,BARW,7,'F');
+          doc.setFillColor(...(complete?GREEN:ORANGE));
+          if(frac>0)doc.rect(c5+2,y+3.5,Math.max(3,BARW*frac),7,'F');
           doc.setFont('helvetica','bold');doc.setFontSize(7.5);
-          doc.setTextColor(...(q.done>=q.target?GREEN:INK));
-          doc.text((q.pct??0)+'%',c6+4,y+10);
+          doc.setTextColor(...(complete?GREEN:INK));
+          doc.text((q.pct??0)+'%',c5+BARW+7,y+10);
+          // pending / extra
+          if(q.done<q.target){
+            doc.setTextColor(...RED);
+            doc.text(doc.splitTextToSize(singular(q.target-q.done,q.service),105)[0],c6+2,y+10);
+          }else if(q.done>q.target){
+            doc.setTextColor(...GREEN);
+            doc.text(doc.splitTextToSize('+'+singular(q.done-q.target,q.service),56)[0],c7+2,y+10);
+          }else{
+            doc.setTextColor(...GREEN);
+            doc.text('—',c6+2,y+10);
+          }
         }else if(q.done!==null&&q.done!==undefined){
           doc.setFont('helvetica','italic');doc.setFontSize(7.5);doc.setTextColor(...MUT);
-          doc.text('no target set',c5+4,y+10);
+          doc.text('no target set',c5+2,y+10);
+          doc.setFont('helvetica','bold');doc.setTextColor(...GREEN);
+          doc.text(doc.splitTextToSize('+'+singular(q.done,q.service),56)[0],c7+2,y+10);
         }else{
           doc.setFont('helvetica','italic');doc.setFontSize(7.5);doc.setTextColor(...MUT);
-          doc.text('no work recorded',c5+4,y+10);
+          doc.text('no work recorded',c5+2,y+10);
         }
         doc.setDrawColor(...LINE);doc.setLineWidth(0.4);doc.line(M,y+14,W-M,y+14);
         y+=14;
       });
-      // slightly stronger divider between clients
       doc.setDrawColor(200,196,188);doc.setLineWidth(0.8);doc.line(M,y,W-M,y);
     });
     y+=16;
-    /* ===== 2. PENDING WORK — excel grid ===== */
+    /* ===== 2. PENDING WORK    /* ===== 2. PENDING WORK — excel grid ===== */
     banner('Pending Work — To Be Done');
     const pend=(r.tasks||[]).filter(t=>t.status!=='done');
     if(!pend.length){
