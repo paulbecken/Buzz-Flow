@@ -131,9 +131,10 @@ html.dark .acts .btn.ghost,html.dark .actrow .btn.ghost{background:rgba(255,255,
 .badge.pending{background:rgba(224,154,13,.15);color:var(--amber)}
 .badge.rewarded{background:rgba(78,155,110,.15);color:var(--sage)}
 .acts{display:flex;gap:5px;flex-wrap:wrap}
-.searchwrap{display:flex;align-items:center;gap:9px;background:var(--chipbg);border:1px solid var(--line);border-radius:14px;padding:10px 14px;margin-bottom:10px;max-width:340px;backdrop-filter:blur(8px)}
-.searchwrap svg{width:15px;height:15px;color:var(--mut);flex:none}
-.searchwrap input{border:none;background:none;padding:0;border-radius:0;font-size:13px;backdrop-filter:none}
+.minisearch{display:flex;align-items:center;gap:6px}
+.minisearch input{display:none;width:150px;font-size:12.5px;padding:8px 12px;border-radius:12px}
+.minisearch.open input{display:block}
+@media(min-width:861px){.minisearch input{display:block}.minisearch .icon-btn{display:none}}
 .tube{display:flex;background:var(--chipbg);border:1px solid var(--line);border-radius:14px;padding:4px;margin-bottom:14px;max-width:520px;backdrop-filter:blur(8px)}
 .tube button{flex:1;font-size:11.5px;font-weight:600;padding:8px 4px;border-radius:10px;color:var(--mut);transition:.15s;white-space:nowrap}
 .tube button.on{background:linear-gradient(135deg,var(--orange),#FF7A44);color:#fff;box-shadow:0 3px 10px rgba(255,90,31,.3)}
@@ -144,6 +145,7 @@ html.dark .acts .btn.ghost,html.dark .actrow .btn.ghost{background:rgba(255,255,
 
 /* mobile workspace cards */
 .wcards{display:none}
+.legend{display:none;font-size:10.5px;color:var(--mut);margin:2px 2px 10px;line-height:1.6}
 .wcard{padding:15px 16px;margin-bottom:11px}
 .wcard .hd{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
 .wcard .meta{display:flex;flex-wrap:wrap;gap:4px 14px;margin-top:10px;font-size:12px;color:var(--mut)}
@@ -210,6 +212,7 @@ html.dark .acts .btn.ghost,html.dark .actrow .btn.ghost{background:rgba(255,255,
   .wst{display:none}
   #wsTableCard{display:none}
   .wcards{display:block}
+  .legend{display:block}
   .calday{min-height:46px;padding:3px 4px;border-radius:8px}
   .calday .dn{font-size:10px}
   .calday .money{font-size:7.5px}
@@ -270,10 +273,13 @@ html.dark .acts .btn.ghost,html.dark .actrow .btn.ghost{background:rgba(255,255,
     <div class="page" id="pg-ws">
       <div class="tophead"><div><div class="crumb">Clients of BuzzFlow</div><h1 class="serif">Workspaces</h1></div>
         <div class="topacts">
+          <div class="minisearch" id="miniSearch">
+            <button class="icon-btn" onclick="msToggle()" title="Search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="width:16px;height:16px"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg></button>
+            <input id="wsSearch" placeholder="Search…" oninput="renderWs()">
+          </div>
           <button class="btn orange" onclick="createWsModal()">＋ Create</button>
           <button class="icon-btn deskonly" onclick="mLogout()" title="Log out">⎋</button>
         </div></div>
-      <div class="searchwrap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg><input id="wsSearch" placeholder="Search workspaces" oninput="renderWs()"></div>
       <div class="tube">
         <button class="on" data-f="all" onclick="setFilter('all')">All</button>
         <button data-f="active" onclick="setFilter('active')">Active</button>
@@ -282,6 +288,7 @@ html.dark .acts .btn.ghost,html.dark .actrow .btn.ghost{background:rgba(255,255,
         <button data-f="expired" onclick="setFilter('expired')">Expired</button>
       </div>
       <div class="glass card" id="wsTableCard" style="overflow-x:auto"><table class="wst" id="wsTable"></table></div>
+      <div class="legend">⏳ Extend &nbsp;·&nbsp; 🔑 Credentials &nbsp;·&nbsp; ✎ Edit &nbsp;·&nbsp; 👁 View &nbsp;·&nbsp; ♻️ PW refresh &nbsp;·&nbsp; ⏸ Suspend</div>
       <div class="wcards" id="wsCards"></div>
     </div>
 
@@ -356,11 +363,9 @@ html.dark .acts .btn.ghost,html.dark .actrow .btn.ghost{background:rgba(255,255,
         <div style="font-weight:700;margin-bottom:4px">🎯 Monthly sales target</div>
         <div style="color:var(--mut);font-size:12px">Your goals — all tracked live on the dashboard with smart suggestions.</div>
         <div class="mrow" style="margin-top:6px">
-          <div><label>Collection target (₹/mo)</label><input id="salesTgt" type="number" placeholder="e.g. 50000"></div>
-          <div><label>New clients target (/mo)</label><input id="tgtClients" type="number" placeholder="e.g. 3"></div>
-        </div>
-        <div class="mrow">
-          <div><label>Renewals target (/mo)</label><input id="tgtRenew" type="number" placeholder="e.g. 5"></div>
+          <div><label>Collection (₹)</label><input id="salesTgt" type="number" placeholder="50000"></div>
+          <div><label>New clients</label><input id="tgtClients" type="number" placeholder="3"></div>
+          <div><label>Renewals</label><input id="tgtRenew" type="number" placeholder="5"></div>
         </div>
         <button class="btn orange" style="margin-top:12px" onclick="saveSettings()">Save</button>
       </div>
@@ -430,6 +435,11 @@ function go(p){
   if(p==='cal')loadCal();
   if(p==='ref')loadRefs();
   window.scrollTo(0,0);
+}
+function msToggle(){
+  const el=document.getElementById('miniSearch');
+  el.classList.toggle('open');
+  if(el.classList.contains('open'))document.getElementById('wsSearch').focus();
 }
 function setFilter(f){FILTER=f;
   document.querySelectorAll('.tube button').forEach(c=>c.classList.toggle('on',c.dataset.f===f));
@@ -603,10 +613,11 @@ function renderWs(){
         <span>✅ <b>${w.tasks_week}</b>/wk</span>
       </div>
       <div class="actrow">
-        <button class="btn sm orange" onclick="extendModal(${w.id})">⏳ Extend</button>
-        <button class="btn sm ghost" onclick="credsModal(${w.id})">🔑 Creds</button>
-        <button class="btn sm ghost" onclick="editWsModal(${w.id})">✎ Edit</button>
-        <button class="btn sm ghost" onclick="impersonate(${w.id})">👁 View</button>
+        <button class="btn sm orange" onclick="extendModal(${w.id})">⏳</button>
+        <button class="btn sm ghost" onclick="credsModal(${w.id})">🔑</button>
+        <button class="btn sm ghost" onclick="editWsModal(${w.id})">✎</button>
+        <button class="btn sm ghost" onclick="impersonate(${w.id})">👁</button>
+        <button class="btn sm ghost" onclick="resetModal(${w.id})">♻️</button>
         ${w.protected?'':w.status==='suspended'
           ?`<button class="btn sm ghost" style="color:var(--sage)" onclick="setStatus(${w.id},'active')">▶</button>`
           :`<button class="btn sm ghost" style="color:var(--red)" onclick="suspendConfirm(${w.id})">⏸</button>`}

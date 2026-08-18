@@ -510,10 +510,12 @@ async function renderDash(){
 
    ${ME.role!=='employee'?`
    <div class="sec-t">📊 Work report <span class="sm">total & employee-wise breakdown</span></div>
-   <div class="card" style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
-     <div style="flex:1;min-width:180px" class="hsub">Complete report: totals, per-employee delivery, client quotas & every task — ready for sharing or records.</div>
-     <button class="btn" onclick="downloadReportXlsx()">📥 Excel</button>
-     <button class="btn ghost" onclick="downloadReportPdf()">📄 PDF</button>
+   <div class="card">
+     <div class="hsub">Complete report: totals, per-employee delivery, client quotas & every task — ready for sharing or records.</div>
+     <div style="display:flex;gap:10px;margin-top:12px">
+       <button class="btn ghost" style="flex:1" onclick="downloadReportPdf()">📄 PDF</button>
+       <button class="btn" style="flex:1" onclick="downloadReportXlsx()">📥 Excel</button>
+     </div>
    </div>`:''}
    <div class="sec-t">🤖 AI Insights <span class="sm">auto-analysis · names highlighted · visible to whole team</span></div>
    ${ins.insights.map(i=>`<div class="ins ${i.level}"><span class="ic">${i.icon}</span><span>${highlightNames(i.text)}</span></div>`).join('')}`;
