@@ -1331,10 +1331,37 @@ async function renderSettings(){
      </div>
    </div>
 
+   <div class="sec-t">🎁 Refer & Earn <span class="sm">know another agency? earn free months</span></div>
+   <div class="card" id="setRefCard"><div class="hsub">Loading your referral code…</div></div>
+
    <div class="sec-t">👑 Ownership</div>
    <div class="card"><div class="hsub">You (<b>${esc(ME.name)}</b>) are the one and only Owner of this workspace. The Owner role can never be taken by anyone else — new members always join as Employees, and only you can promote them to Manager from the Team section.</div></div>`;
   drawInviteQR(inv);
   loadServiceChips();
+  loadSetRef();
+}
+async function loadSetRef(){
+  const box=document.getElementById('setRefCard');
+  if(!box)return;
+  try{
+    const j=await api('/referral');
+    window._refMsg=`Hey! I use BuzzFlow to manage my agency's tasks, clients & monthly deliverables — it has honestly made my team so much more organised.\n\nUse my referral code *${j.code}* when you sign up and you get *20% OFF* your first month. I get a free month too — win-win!\n\nAsk BuzzFlow for a demo: https://wa.me/919769044811?text=${encodeURIComponent('Hi! I was referred with code '+j.code+' — I want a BuzzFlow demo.')}`;
+    box.innerHTML=`
+     <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap">
+       <div style="text-align:center;flex:0 0 auto">
+         <div style="font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--mut);font-weight:700">Your code</div>
+         <div class="serif" style="font-size:26px;color:var(--orange);letter-spacing:.04em">${esc(j.code)}</div>
+       </div>
+       <div style="flex:1;min-width:200px">
+         <div class="hsub">They get <b>20% off</b> their first month · you get <b>1 month FREE</b> when they become a paying client. ${j.referrals.length?`<br><b>${j.referrals.length}</b> referral${j.referrals.length>1?'s':''} so far · ${j.referrals.filter(r=>r.status==='rewarded').length} rewarded ✓`:''}</div>
+         <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
+           <button class="btn orange" style="padding:9px 16px;font-size:12.5px" onclick="shareRef()">📤 Share on WhatsApp</button>
+           <button class="btn ghost" style="padding:9px 16px;font-size:12.5px" onclick="copyRef('${esc(j.code)}')">Copy code</button>
+           <button class="btn ghost" style="padding:9px 16px;font-size:12.5px" onclick="go('refer')">Full page →</button>
+         </div>
+       </div>
+     </div>`;
+  }catch(e){box.innerHTML='<div class="hsub">Could not load referral info.</div>'}
 }
 async function loadServiceChips(){
   const box=document.getElementById('svcChips');

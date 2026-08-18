@@ -186,6 +186,18 @@ def ws_protected(wid):
 def _unit_days(unit):
     return {'days': 1, 'months': 30, 'years': 365}.get((unit or 'days').lower(), 1)
 
+def _ws_creds(w, owner):
+    c = {}
+    try:
+        if 'creds' in w.keys() and w['creds']:
+            c = json.loads(w['creds'])
+    except Exception:
+        c = {}
+    c.setdefault('email', owner['email'] if owner else '')
+    c.setdefault('invite_code', w['invite_code'])
+    c.setdefault('password', None)
+    return c
+
 def init_db():
     if USE_PG:
         conn = PgConn(DATABASE_URL)
@@ -1180,7 +1192,7 @@ def master_overview():
                         owner_phone='', members=members, clients=clients, tasks_month=tasks_m,
                         tasks_week=tasks_week, last_active=last_active, trial_day=trial_day,
                         referred_by=rby['name'] if rby else None, ref_bonus_days=bonus,
-                        creds=(json.loads(w['creds']) if w['creds'] else None) if 'creds' in w.keys() else None,
+                        creds=_ws_creds(w, owner),
                         protected=ws_protected(w['id']), total_paid=round(paid, 2)))
     rev_month = d.execute("SELECT COALESCE(SUM(amount),0) s FROM wpayments WHERE substr(paid_on,1,7)=?", (month,)).fetchone()['s'] or 0
     new_month = len([x for x in wss if (x['created_at'] or '')[:7] == month])

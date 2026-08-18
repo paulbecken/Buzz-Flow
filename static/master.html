@@ -98,11 +98,20 @@ html.dark .acts .btn.ghost,html.dark .actrow .btn.ghost{background:rgba(255,255,
 .tgt .bar{height:10px;border-radius:10px;background:var(--chipbg);border:1px solid var(--line);margin-top:10px;overflow:hidden}
 .tgt .bar i{display:block;height:100%;background:linear-gradient(90deg,var(--orange),var(--orange2));border-radius:10px;transition:.4s}
 .tgt .bar i.full{background:linear-gradient(90deg,#4E9B6E,#6FBF8F)}
+.pkgrow{display:flex;gap:9px;margin-top:10px}
+.pkgbox{flex:1;border:1.5px solid var(--line);border-radius:13px;padding:11px 12px;cursor:pointer;background:var(--chipbg);transition:.15s}
+.pkgbox.on{border-color:var(--orange);box-shadow:0 4px 14px rgba(255,90,31,.18)}
+.pkgbox .pk-t{font-size:10.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--mut)}
+.pkgbox.on .pk-t{color:var(--orange)}
+.pkgbox .pk-p{font-family:'DM Serif Display',serif;font-size:17px;margin-top:3px}
+.pkgbox .pk-s{font-size:11px;color:var(--mut);margin-top:4px}
+.pkgbox .pk-s select{width:auto;padding:3px 8px;font-size:12px;border-radius:8px;margin-left:4px}
 .goals .goal{margin-top:11px}
 @media(max-width:860px){
-  .goals{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}
-  .goals .goal{margin-top:10px}
-  .goals .goal .row{flex-direction:column;align-items:flex-start;gap:1px;font-size:10.5px!important}
+  .goals{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:9px}
+  .goals .goal{margin-top:10px;min-width:0}
+  .goals .goal .row{flex-direction:column;align-items:flex-start;gap:1px;font-size:10px!important}
+  .goals .goal .row div{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
 }
 .aitip{margin-top:12px;font-size:12.5px;background:var(--chipbg);border:1px solid var(--line);border-radius:12px;padding:11px 13px;line-height:1.7}
 .aitip b{color:var(--orange)}
@@ -369,11 +378,7 @@ html.dark .acts .btn.ghost,html.dark .actrow .btn.ghost{background:rgba(255,255,
         <div style="font-weight:700;margin-bottom:4px">💳 Razorpay</div>
         <div style="color:var(--mut);font-size:12.5px">Coming soon — payment links straight from the Extend screen once you get the gateway.</div>
       </div>
-      <div class="glass card">
-        <div style="font-weight:700;margin-bottom:4px">♻️ Reset Master settings</div>
-        <div style="color:var(--mut);font-size:12.5px">Clears only the panel settings (targets, templates) back to fresh. Workspaces, payments, referrals & plans are NOT touched.</div>
-        <button class="btn ghost" style="margin-top:12px;color:var(--red);border-color:rgba(224,82,82,.4)" onclick="resetMaster()">Reset settings</button>
-      </div>
+
     </div>
   </div>
 
@@ -599,6 +604,7 @@ function renderWs(){
       </div>
       <div class="actrow">
         <button class="btn sm orange" onclick="extendModal(${w.id})">⏳ Extend</button>
+        <button class="btn sm ghost" onclick="credsModal(${w.id})">🔑 Creds</button>
         <button class="btn sm ghost" onclick="editWsModal(${w.id})">✎ Edit</button>
         <button class="btn sm ghost" onclick="impersonate(${w.id})">👁 View</button>
         ${w.protected?'':w.status==='suspended'
@@ -865,22 +871,7 @@ async function saveSettings(){
     Object.assign(SETTINGS,b);
     toast('Saved ✓');renderTarget()}catch(e){toast(e)}
 }
-async function resetMaster(){
-  openModal(`
-   <button class="x" onclick="closeModal()">×</button>
-   <h2 class="serif">Reset Master settings?</h2>
-   <div style="color:var(--mut);font-size:12.5px;margin-top:6px;line-height:1.7">This clears only <b>your panel's settings</b> — sales targets, WhatsApp template — back to fresh defaults.<br><br><b style="color:var(--sage)">Nothing else is touched:</b> all workspaces, payments, referrals, plans and client data stay exactly as they are.</div>
-   <div class="mrow" style="margin-top:16px">
-     <div><button class="btn full" style="background:var(--red);color:#fff;margin-top:0" onclick="doResetMaster()">Yes, reset settings</button></div>
-     <div><button class="btn ghost full" style="margin-top:0" onclick="closeModal()">Cancel</button></div>
-   </div>`);
-}
-async function doResetMaster(){
-  try{await mapi('/reset-settings',{method:'POST'});
-    SETTINGS={};
-    $('#waTpl').value=DEF_WA_TPL;$('#salesTgt').value='';$('#tgtClients').value='';$('#tgtRenew').value='';
-    closeModal();toast('Master settings reset ✓');renderTarget()}catch(e){toast(e)}
-}
+
 
 /* ---- modals ---- */
 function openModal(h){$('#modal').innerHTML=h;$('#modalBg').classList.add('show')}
@@ -902,36 +893,73 @@ function createWsModal(){
      <div><label>Password</label><input id="cwPw" value="${'BF'+Math.random().toString(36).slice(2,8).toUpperCase()}"></div>
      <div><label>Team invite code</label><input id="cwCode" placeholder="auto if empty"></div>
    </div>
-   <label>Plan</label><select id="cwPlan" onchange="cwPlanInfo()">${DATA.plans.map(p=>`<option ${p.name==='Trial'?'selected':''}>${esc(p.name)}</option>`).join('')}</select>
-   <div id="cwPlanInfo" style="font-size:12px;margin-top:7px;background:var(--chipbg);border:1px solid var(--line);border-radius:11px;padding:9px 12px;line-height:1.6"></div>
-   <div style="margin-top:14px;padding:12px;border:1.5px dashed var(--line);border-radius:12px">
-     <div style="font-size:11px;font-weight:700;color:var(--mut);letter-spacing:.06em;text-transform:uppercase">Customize (optional — overrides plan)</div>
-     <div class="mrow">
-       <div><label>Duration</label><input id="cwCv" type="number" min="0" placeholder="0"></div>
-       <div><label>Unit</label><select id="cwCu"><option value="days">Days</option><option value="months" selected>Months</option><option value="years">Years</option></select></div>
-       <div><label>Price (₹)</label><input id="cwCp" type="number" min="0" placeholder="0"></div>
-     </div>
-     <div style="font-size:10.5px;color:var(--mut);margin-top:5px">Price gets logged in Payments automatically.</div>
-   </div>
+   <label>Package</label><select id="cwPlan" onchange="cwPlanInfo()">${DATA.plans.map(p=>`<option ${p.name==='Trial'?'selected':''}>${esc(p.name)}</option>`).join('')}</select>
+   <div id="cwPkgArea"></div>
    <label>Referral code (if they were referred — auto-links everything)</label>
    <input id="cwRefCode" placeholder="e.g. BMF-3F2A" style="text-transform:uppercase">
    <button class="btn orange full" onclick="createWs()">Create workspace →</button>`);
   cwPlanInfo();
 }
+let CWSEL={kind:null,months:1,years:1};
 function cwPlanInfo(){
   const p=DATA.plans.find(x=>x.name===$('#cwPlan').value);
-  if(!p){$('#cwPlanInfo').innerHTML='';return}
-  let h='';
-  if(p.duration_val>0)h=`🎁 <b>${esc(p.name)}</b> — ${pkgText(p)} · ${p.max_members?('up to '+p.max_members+' members'):'unlimited members'}<br><span style="color:var(--sage)">Validity auto-set: ${p.duration_val} ${p.duration_unit}</span>`;
-  else if(p.name==='Trial')h=`<b>Trial</b> — Free · 14 days auto · ${p.max_members?('up to '+p.max_members+' members'):'unlimited members'}`;
-  else h=`<b>${esc(p.name)}</b> — ${p.price_m?inr(p.price_m)+'/mo':'Free'}${p.price_y?' · '+inr(p.price_y)+'/yr':''} · ${p.max_members?('up to '+p.max_members+' members'):'unlimited members'}`;
-  $('#cwPlanInfo').innerHTML=h;
+  const area=$('#cwPkgArea');
+  if(!p){area.innerHTML='';return}
+  const mem=p.max_members?('up to '+p.max_members+' members'):'unlimited members';
+  if(p.duration_val>0){
+    CWSEL={kind:'pkg'};
+    area.innerHTML=`<div class="pkgbox on" style="margin-top:10px">
+      <div class="pk-t">🎁 Customized package</div>
+      <div class="pk-p">${pkgText(p)}</div>
+      <div class="pk-s">${mem} · validity auto-set: ${p.duration_val} ${p.duration_unit}</div></div>`;
+    return;
+  }
+  if(p.name==='Trial'||(!p.price_m&&!p.price_y)){
+    CWSEL={kind:'trial'};
+    area.innerHTML=`<div class="pkgbox on" style="margin-top:10px">
+      <div class="pk-t">Free trial</div>
+      <div class="pk-p">₹0 · 14 days</div>
+      <div class="pk-s">${mem}</div></div>`;
+    return;
+  }
+  CWSEL={kind:'monthly',months:1,years:1};
+  area.innerHTML=`
+   <div class="pkgrow">
+     <div class="pkgbox on" id="pkgM" onclick="cwPick('monthly')">
+       <div class="pk-t">Monthly package</div>
+       <div class="pk-p">${inr(p.price_m)}/mo</div>
+       <div class="pk-s">Months: <select id="cwMn" onclick="event.stopPropagation()" onchange="CWSEL.months=+this.value;cwTotal()">${[1,2,3,6,9,12].map(n=>`<option>${n}</option>`).join('')}</select></div>
+     </div>
+     ${p.price_y?`<div class="pkgbox" id="pkgY" onclick="cwPick('yearly')">
+       <div class="pk-t">Yearly package</div>
+       <div class="pk-p">${inr(p.price_y)}/yr</div>
+       <div class="pk-s">Years: <select id="cwYr" onclick="event.stopPropagation()" onchange="CWSEL.years=+this.value;cwTotal()">${[1,2,3].map(n=>`<option>${n}</option>`).join('')}</select></div>
+     </div>`:''}
+   </div>
+   <div class="pk-s" style="margin:7px 2px 0">${mem} · <span id="cwTot"></span></div>`;
+  cwTotal();
+}
+function cwPick(k){
+  CWSEL.kind=k;
+  document.getElementById('pkgM')?.classList.toggle('on',k==='monthly');
+  document.getElementById('pkgY')?.classList.toggle('on',k==='yearly');
+  cwTotal();
+}
+function cwTotal(){
+  const p=DATA.plans.find(x=>x.name===$('#cwPlan').value);if(!p)return;
+  const el=document.getElementById('cwTot');if(!el)return;
+  if(CWSEL.kind==='yearly')el.innerHTML=`<b style="color:var(--sage)">Total: ${inr(p.price_y*CWSEL.years)} for ${CWSEL.years} year${CWSEL.years>1?'s':''}</b>`;
+  else el.innerHTML=`<b style="color:var(--sage)">Total: ${inr(p.price_m*CWSEL.months)} for ${CWSEL.months} month${CWSEL.months>1?'s':''}</b>`;
 }
 async function createWs(){
   try{
+    const p=DATA.plans.find(x=>x.name===$('#cwPlan').value)||{};
+    let cv=0,cu='months',cp=0;
+    if(CWSEL.kind==='monthly'){cv=CWSEL.months;cu='months';cp=(p.price_m||0)*CWSEL.months}
+    else if(CWSEL.kind==='yearly'){cv=CWSEL.years;cu='years';cp=(p.price_y||0)*CWSEL.years}
     const body={name:$('#cwName').value,owner_name:$('#cwOwner').value,owner_email:$('#cwEmail').value,
       password:$('#cwPw').value,invite_code:$('#cwCode').value,plan:$('#cwPlan').value,
-      months:0,custom_value:+$('#cwCv').value||0,custom_unit:$('#cwCu').value,custom_price:+$('#cwCp').value||0,
+      months:0,custom_value:cv,custom_unit:cu,custom_price:cp,
       ref_code:$('#cwRefCode').value.trim()};
     const j=await mapi('/workspaces',{method:'POST',body:JSON.stringify(body)});
     const loginUrl=location.origin+'/';
@@ -987,20 +1015,21 @@ async function doExtend(id){
 function credsModal(id){
   const w=DATA.workspaces.find(x=>x.id===id);
   const c=w.creds||{};
+  const email=c.email||w.owner_email, code=c.invite_code||'—';
   const loginUrl=location.origin+'/';
   openModal(`
    <button class="x" onclick="closeModal()">×</button>
    <h2 class="serif">Credentials — ${esc(w.name)}</h2>
-   <div style="color:var(--mut);font-size:12px">Saved automatically when the workspace was created. Password updates when you reset it.</div>
    <div class="credbox" id="credBox">
-     <b>Login details:</b><br>
+     <b>Send these to the owner:</b><br>
      🔗 Login: ${loginUrl}<br>
-     📧 Email: ${esc(c.email||w.owner_email)}<br>
-     🔒 Password: ${c.password?esc(c.password):'<i>not saved (old workspace) — use Reset PW to set a new one</i>'}<br>
-     🎟 Team invite code: ${esc(c.invite_code||'—')}
+     📧 Email: ${esc(email)}<br>
+     🔒 Password: ${c.password?esc(c.password):'••••• (created before v6.5 — tap ♻️ Reset PW once to save a new one)'}<br>
+     🎟 Team invite code: ${esc(code)}<br>
+     📅 Valid till: ${w.protected?'Unlimited ∞':(w.expires_on||'no expiry set')}
    </div>
    <button class="btn orange full" onclick="copyCreds()">📋 Copy credentials</button>
-   ${c.password?`<button class="btn full" style="margin-top:8px" onclick="waCreds('${esc(c.email||w.owner_email)}','${esc(c.password)}','${esc(c.invite_code||'')}','${w.expires_on||''}')">📤 Send on WhatsApp</button>`:''}`);
+   <button class="btn full" style="margin-top:8px" onclick="waCreds('${esc(email)}','${esc(c.password||'(ask BuzzFlow)')}','${esc(code)}','${w.expires_on||''}')">📤 Send on WhatsApp</button>`);
 }
 function editWsModal(id){
   const w=DATA.workspaces.find(x=>x.id===id);
