@@ -1628,6 +1628,15 @@ def guest_data(token):
 def guest_page(token):
     return send_from_directory('static', 'guest.html')
 
+# public pricing feed for the marketing website (no auth, CORS open)
+@app.get('/api/public/plans')
+def public_plans():
+    seed_plans()
+    plans = [dict(r) for r in db().execute("SELECT name, price_m, price_y, max_members, duration_val, duration_unit, price_pack FROM plans ORDER BY price_m").fetchall()]
+    resp = jsonify(plans=plans)
+    resp.headers['Access-Control-Allow-Origin'] = '*'
+    return resp
+
 @app.get('/master')
 def master_page():
     return send_from_directory('static', 'master.html')
