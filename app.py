@@ -1637,6 +1637,22 @@ def public_plans():
     resp.headers['Access-Control-Allow-Origin'] = '*'
     return resp
 
+# marketing website
+@app.get('/site')
+def site_redirect():
+    from flask import redirect
+    return redirect('/site/', code=301)
+
+@app.get('/site/')
+def site_home():
+    return send_from_directory('static/site', 'index.html')
+
+@app.get('/site/<path:fname>')
+def site_page(fname):
+    if not fname.endswith('.html'):
+        fname += '.html' if '.' not in fname else ''
+    return send_from_directory('static/site', fname)
+
 @app.get('/master')
 def master_page():
     return send_from_directory('static', 'master.html')
