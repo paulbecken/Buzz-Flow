@@ -191,6 +191,54 @@ footer a:hover{color:var(--orange)}
 /* reveal animation */
 .rv{opacity:0;transform:translateY(26px);transition:opacity .6s ease,transform .6s ease}
 .rv.in{opacity:1;transform:none}
+
+/* marquee */
+.marq{overflow:hidden;white-space:nowrap;border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:18px 0;margin-top:40px}
+.marq .track{display:inline-block;animation:marq 32s linear infinite}
+.marq span{display:inline-block;margin:0 28px;font-size:14.5px;font-weight:600;color:var(--mut)}
+.marq:hover .track{animation-play-state:paused}
+@keyframes marq{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+
+/* product shots */
+.shots{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px}
+.shot{padding:18px}
+.shot .cap{font-size:13px;font-weight:700;margin-bottom:12px}
+.shot .cap span{color:var(--mut);font-weight:400;display:block;font-size:11px;margin-top:1px}
+.ui{border-radius:14px;background:var(--glass2);border:1px solid var(--line);padding:13px}
+.ui .row{display:flex;justify-content:space-between;font-size:10.5px;font-weight:600;margin-bottom:5px}
+.ui .row .n{color:var(--mut)}
+.ui .bar{height:6px;border-radius:6px;background:rgba(140,130,160,.18);overflow:hidden;margin-bottom:10px}
+.ui .bar i{display:block;height:100%;border-radius:6px;background:linear-gradient(90deg,var(--orange),var(--orange2))}
+.ui .bar i.g{background:linear-gradient(90deg,#4E9B6E,#6FBF8F)}
+.ui .kgrid{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.ui .k{border-radius:10px;padding:10px;background:var(--chipbg);border:1px solid var(--line)}
+.ui .k .v{font-family:'DM Serif Display',serif;font-size:17px}
+.ui .k .l{font-size:7.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--mut);margin-top:2px}
+.ui .k.o{background:linear-gradient(135deg,var(--orange),#FF7A44);border:none}
+.ui .k.o .v,.ui .k.o .l{color:#fff}
+.ui .task{display:flex;justify-content:space-between;align-items:center;gap:8px;background:var(--chipbg);border:1px solid var(--line);border-radius:10px;padding:9px 11px;margin-bottom:7px;font-size:10.5px;font-weight:600}
+.ui .task:last-child{margin-bottom:0}
+.ui .task .tag{font-size:8.5px;padding:2px 9px;border-radius:12px;background:rgba(74,144,217,.14);color:var(--blue);font-weight:700;letter-spacing:.04em;flex:0 0 auto}
+.ui .task .tag.g{background:rgba(78,155,110,.15);color:var(--sage)}
+.ui .task .tag.r{background:rgba(224,82,82,.14);color:var(--red)}
+
+/* how-it-works flow */
+.flow{display:grid;grid-template-columns:1fr auto 1fr auto 1fr;gap:10px;align-items:stretch}
+.flow .arrow{display:flex;align-items:center;font-size:28px;color:var(--orange);font-weight:700}
+@media(max-width:860px){.flow{grid-template-columns:1fr}.flow .arrow{justify-content:center;transform:rotate(90deg);height:34px}}
+.fstep{padding:24px 22px}
+.fstep .fnum{display:inline-flex;width:32px;height:32px;border-radius:11px;background:linear-gradient(135deg,var(--orange),#FF7A44);color:#fff;align-items:center;justify-content:center;font-weight:700;font-size:15px;margin-bottom:12px;box-shadow:0 4px 12px rgba(255,90,31,.3)}
+.fstep h3{font-size:16px;margin-bottom:6px}
+.fstep p{color:var(--mut);font-size:12.5px;line-height:1.65;margin-bottom:14px}
+.chat{border-radius:13px;background:var(--chipbg);border:1px solid var(--line);padding:11px}
+.chat .bub{background:#DCF8C6;color:#1A1B22;border-radius:11px 11px 3px 11px;padding:8px 11px;font-size:11px;max-width:88%;margin-left:auto;font-weight:500;line-height:1.5}
+.chat .bub.in{background:#fff;border-radius:11px 11px 11px 3px;margin:8px auto 0 0}
+html.dark .chat .bub{background:#1F5E3D;color:#EDEBF2}
+html.dark .chat .bub.in{background:#2A2A36;color:#EDEBF2}
+.credmini{border:1.5px dashed var(--orange);border-radius:13px;padding:12px 14px;font-size:11px;line-height:2;background:var(--chipbg);font-weight:500}
+.qrmini{display:grid;grid-template-columns:repeat(5,11px);gap:3px;padding:11px;background:#fff;border-radius:11px;width:max-content;flex:0 0 auto}
+.qrmini i{width:11px;height:11px;background:#1A1B22;border-radius:2.5px}
+.qrmini i.w{background:transparent}
 </style>
 </head>
 <body>
@@ -211,10 +259,48 @@ footer a:hover{color:var(--orange)}
 </div></header>
 
 <section style="padding-top:10px"><div class="wrap">
-  <div class="steps">
-    <div class="glass step rv"><div class="num serif">1</div><h3>WhatsApp us</h3><p>Tap any button on this site → tell us your business name. That's the entire "form".</p></div>
-    <div class="glass step rv"><div class="num serif">2</div><h3>We build your workspace</h3><p>Within minutes you get your login, password and a team invite QR — ready to use, personally configured.</p></div>
-    <div class="glass step rv"><div class="num serif">3</div><h3>Team scans & works</h3><p>Your team scans the QR, joins as employees, and today's tasks are already waiting for them.</p></div>
+  <div class="flow">
+    <div class="glass fstep rv">
+      <div class="fnum">1</div>
+      <h3>WhatsApp us</h3>
+      <p>Tap any button on this site → tell us your business name. That's the entire "form".</p>
+      <div class="chat">
+        <div class="bub">Hi! I want my BuzzFlow workspace. Business: Pixel Studio 🚀</div>
+        <div class="bub in">Welcome Pixel Studio! 🎉 Setting you up right now — 5 minutes!</div>
+      </div>
+    </div>
+    <div class="arrow">→</div>
+    <div class="glass fstep rv">
+      <div class="fnum">2</div>
+      <h3>We build your workspace</h3>
+      <p>Within minutes you get your login, password & team invite QR — personally configured with your services & clients.</p>
+      <div class="credmini">
+        🔗 Login: buzz-flow.app<br>
+        📧 owner@pixelstudio.in<br>
+        🔒 Password: BF8K2QX<br>
+        🎟 Team code: PIXEL9
+      </div>
+    </div>
+    <div class="arrow">→</div>
+    <div class="glass fstep rv">
+      <div class="fnum">3</div>
+      <h3>Team scans & works</h3>
+      <p>Your team scans the QR, joins as employees — and today's tasks are already waiting for them.</p>
+      <div style="display:flex;gap:12px;align-items:center">
+        <div class="qrmini">
+          <i></i><i class="w"></i><i></i><i></i><i></i>
+          <i></i><i></i><i class="w"></i><i class="w"></i><i></i>
+          <i class="w"></i><i></i><i></i><i class="w"></i><i></i>
+          <i></i><i class="w"></i><i class="w"></i><i></i><i class="w"></i>
+          <i></i><i></i><i class="w"></i><i></i><i></i>
+        </div>
+        <div style="flex:1">
+          <div class="ui" style="padding:9px">
+            <div class="task" style="margin:0"><span>🎬 2 Reels · today</span><span class="tag">TO-DO</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 
   <div style="text-align:center;margin:40px 0 10px">
