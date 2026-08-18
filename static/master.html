@@ -878,7 +878,7 @@ async function resetMaster(){
 async function doResetMaster(){
   try{await mapi('/reset-settings',{method:'POST'});
     SETTINGS={};
-    $('#waTpl').value=DEF_WA_TPL;$('#salesTgt').value='';$('#tgtClients').value='';$('#tgtRenew').value='';$('#tgtDeal').value='';
+    $('#waTpl').value=DEF_WA_TPL;$('#salesTgt').value='';$('#tgtClients').value='';$('#tgtRenew').value='';
     closeModal();toast('Master settings reset ✓');renderTarget()}catch(e){toast(e)}
 }
 
